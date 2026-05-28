@@ -3,862 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Archive | 同人作品私人存档站</title>
-    <!-- 引入 Remix Icon 图标库 -->
+    <title>ARCHIVE.LOG // 私人同人极客存档</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #000000;
-            --accent-color: #333333;
-            --border-color: #e5e5e5;
-            --card-bg: #f9f9f9;
-            --tag-bg: #f0f0f0;
-            --warning-color: #ff3b30;
-            --success-color: #34c759;
-            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        }
-
-        [data-theme="dark"] {
-            --bg-color: #0a0a0a;
-            --text-color: #ffffff;
-            --accent-color: #cccccc;
-            --border-color: #222222;
-            --card-bg: #141414;
-            --tag-bg: #222222;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
-        }
-
-        body {
-            font-family: var(--font-family);
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow-x: hidden;
-            min-height: 100vh;
-        }
-
-        /* Canvas 背景几何线 */
-        #bg-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            pointer-events: none;
-            opacity: 0.6;
-        }
-
-        /* 布局框架 */
-        .app-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px 15px 80px 15px; /* 留出底部导航空间 */
-        }
-
-        /* 极简页眉 */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 25px;
-        }
-
-        header h1 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-
-        .theme-toggle {
-            cursor: pointer;
-            font-size: 1.2rem;
-            background: none;
-            border: none;
-            color: var(--text-color);
-        }
-
-        /* 仪表盘统计 */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            text-align: center;
-        }
-
-        .stat-num {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--accent-color);
-            letter-spacing: 1px;
-        }
-
-        /* 快捷入口区 */
-        .quick-actions {
-            margin-bottom: 30px;
-        }
-
-        .search-box {
-            display: flex;
-            border: 1px solid var(--border-color);
-            background: var(--bg-color);
-            padding: 10px;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .search-box input {
-            flex: 1;
-            border: none;
-            background: none;
-            color: var(--text-color);
-            outline: none;
-            font-size: 0.9rem;
-            margin-left: 10px;
-        }
-
-        /* 模态弹窗与表单 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 15px;
-        }
-
-        .modal-content {
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            width: 100%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            padding: 25px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.8rem;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            background: var(--card-bg);
-            color: var(--text-color);
-            outline: none;
-            font-family: var(--font-family);
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-color);
-            color: var(--text-color);
-            cursor: pointer;
-            text-transform: uppercase;
-            font-size: 0.85rem;
-            letter-spacing: 1px;
-            font-weight: 600;
-        }
-
-        .btn.primary {
-            background: var(--text-color);
-            color: var(--bg-color);
-        }
-
-        /* 列表与树形层级 */
-        .tree-node {
-            margin-bottom: 15px;
-        }
-
-        .tree-header {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 12px 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .tree-children {
-            padding-left: 15px;
-            border-left: 1px dashed var(--border-color);
-            margin-top: 5px;
-        }
-
-        /* 作品卡片样式 */
-        .archive-card {
-            background: var(--bg-color);
-            border: 1px solid var(--border-color);
-            padding: 15px;
-            margin-top: 10px;
-            position: relative;
-        }
-
-        .card-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-
-        .card-title {
-            font-size: 1rem;
-            font-weight: 600;
-            text-decoration: none;
-            color: var(--text-color);
-        }
-
-        .card-title:hover {
-            text-decoration: underline;
-        }
-
-        .platform-badge {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border: 1px solid var(--border-color);
-            text-transform: uppercase;
-        }
-
-        .card-meta {
-            font-size: 0.8rem;
-            color: var(--accent-color);
-            margin-bottom: 8px;
-        }
-
-        .card-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        .tag {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            background: var(--tag-bg);
-        }
-
-        .tag.雷 {
-            color: var(--warning-color);
-            border: 1px solid var(--warning-color);
-            background: none;
-        }
-
-        .card-comment {
-            font-size: 0.85rem;
-            border-left: 2px solid var(--text-color);
-            padding-left: 10px;
-            margin-top: 10px;
-            font-style: italic;
-        }
-
-        .card-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 10px;
-            font-size: 0.8rem;
-        }
-
-        .action-link {
-            cursor: pointer;
-            color: var(--accent-color);
-        }
-
-        .action-link:hover {
-            color: var(--text-color);
-        }
-
-        /* 状态标记 */
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 5px;
-        }
-        .status-连载 { background-color: #2f80ed; }
-        .status-完结 { background-color: var(--success-color); }
-        .status-弃坑 { background-color: var(--warning-color); }
-
-        /* 移动端底部固定导航栏 */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; width: 100%;
-            background: var(--bg-color);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 0;
-            z-index: 900;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 0.7rem;
-            color: var(--accent-color);
-            cursor: pointer;
-            background: none;
-            border: none;
-        }
-
-        .nav-item.active {
-            color: var(--text-color);
-            font-weight: 700;
-        }
-
-        .nav-item i {
-            font-size: 1.2rem;
-            margin-bottom: 2px;
-        }
-
-        /* 视图切换控制 */
-        .view-section {
-            display: none;
-        }
-        .view-section.active {
-            display: block;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="dark">
 
+    <div class="bg-grid-overlay"></div>
     <canvas id="bg-canvas"></canvas>
 
-    <div class="app-container">
-        <!-- 头部 -->
-        <header>
-            <h1>ARCHIVE.LOG</h1>
-            <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">
-                <i class="ri-moon-line" id="theme-icon"></i>
-            </button>
-        </header>
-
-        <!-- 页面一：工作台首页 -->
-        <section id="view-home" class="view-section active">
-            <!-- 极简仪表盘 -->
-            <div class="dashboard-grid">
-                <div class="stat-card">
-                    <div class="stat-num" id="stat-total">0</div>
-                    <div class="stat-label">总归档</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num" id="stat-fandoms">0</div>
-                    <div class="stat-label">多圈历程</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-num" id="stat-reading">0</div>
-                    <div class="stat-label">正追更</div>
-                </div>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <span class="logo-dot"></span>
+                <h2>ARCHIVE.LOG</h2>
             </div>
-
-            <!-- 搜索 -->
-            <div class="quick-actions">
-                <div class="search-box">
-                    <i class="ri-search-line"></i>
-                    <input type="text" id="global-search" placeholder="跨圈搜索标题、作者、CP、标签..." oninput="renderArchiveList()">
-                </div>
-            </div>
-
-            <!-- 核心列表：圈子 -> CP -> 作品 -->
-            <div id="archive-tree-container"></div>
-        </section>
-
-        <!-- 页面二：数据管理与导入导出 -->
-        <section id="view-settings" class="view-section">
-            <h3 style="margin-bottom: 20px; font-weight: 600; font-size: 1rem; letter-spacing: 1px;">数据迁移与全局备份</h3>
-            <div class="form-group">
-                <p style="font-size:0.85rem; margin-bottom:15px; color:var(--accent-color); line-height:1.6;">
-                    所有同人数据均保存在本地浏览器中。为了抢救被删、被锁的文本线索，请定期导出备份。
-                </p>
-                <button class="btn primary" onclick="exportData()" style="margin-bottom: 15px; width: 100%;">
-                    <i class="ri-download-cloud-line"></i> 导出全量 JSON 备份
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="switchTab('dashboard')">
+                    <i class="ri-dashboard-3-line"></i> 仪表盘
+                </button>
+                <button class="nav-btn" onclick="switchTab('repository')">
+                    <i class="ri-folder-zip-line"></i> 藏品库
+                </button>
+                <button class="nav-btn" onclick="switchTab('backup')">
+                    <i class="ri-terminal-box-line"></i> 终极备份
+                </button>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="action-trigger theme-toggle" onclick="toggleTheme()">
+                    <i class="ri-moon-clear-line" id="theme-icon"></i> <span>深色模式</span>
                 </button>
             </div>
-            <div class="form-group" style="margin-top: 30px;">
-                <label>从备份导入恢复</label>
-                <input type="file" id="import-file" accept=".json" onchange="importData()" style="padding:10px; border:1px dashed var(--border-color);">
-            </div>
-        </section>
+        </aside>
+
+        <main class="main-content">
+            
+            <section id="mod-dashboard" class="mod-section active">
+                <div class="section-header">
+                    <h3>DASHBOARD // 数据概览</h3>
+                </div>
+                <div class="matrix-grid">
+                    <div class="matrix-card">
+                        <div class="card-glow"></div>
+                        <span class="matrix-label">已封存藏品</span>
+                        <span class="matrix-value" id="stat-total">0</span>
+                    </div>
+                    <div class="matrix-card">
+                        <div class="card-glow"></div>
+                        <span class="matrix-label">观测圈子数</span>
+                        <span class="matrix-value" id="stat-fandoms">0</span>
+                    </div>
+                    <div class="matrix-card">
+                        <div class="card-glow"></div>
+                        <span class="matrix-label">抢救性孤本</span>
+                        <span class="matrix-value" id="stat-saved">0</span>
+                    </div>
+                </div>
+
+                <div class="recent-panel">
+                    <h4>RECENTLY // 最近重温与入库</h4>
+                    <div id="recent-list" class="recent-list"></div>
+                </div>
+            </section>
+
+            <section id="mod-repository" class="mod-section">
+                <div class="section-header">
+                    <h3>REPOSITORY // 圈子索引</h3>
+                    <div class="search-wrapper">
+                        <i class="ri-search-eye-line"></i>
+                        <input type="text" id="search-input" placeholder="跨圈搜索标题/作者/CP/萌雷点TAG..." oninput="renderRepository()">
+                    </div>
+                </div>
+                <div id="repo-tree" class="repo-tree"></div>
+            </section>
+
+            <section id="mod-backup" class="mod-section">
+                <div class="section-header">
+                    <h3>DATA MANAGEMENT // 数据主控</h3>
+                </div>
+                <div class="terminal-box">
+                    <p class="terminal-line">> STATUS: LOCALSTORAGE_ACTIVE</p>
+                    <p class="terminal-line">> INFO: 本站为全隔离私人工作台，不经过任何服务器，数据绝对安全。</p>
+                    <div class="terminal-actions">
+                        <button class="cyber-btn" onclick="exportJSON()">
+                            <i class="ri-download-2-line"></i> 导出全量加密存档 (.json)
+                        </button>
+                        <label class="cyber-btn file-label">
+                            <i class="ri-upload-2-line"></i> 导入历史全局存档
+                            <input type="file" id="import-file" accept=".json" onchange="importJSON()" style="display:none;">
+                        </label>
+                    </div>
+                </div>
+            </section>
+        </main>
     </div>
 
-    <!-- 底部固定导航 -->
-    <nav class="bottom-nav">
-        <button class="nav-item active" onclick="switchView('home', this)">
-            <i class="ri-folder-shield-2-line"></i>
-            <span>工作台</span>
-        </button>
-        <button class="nav-item" onclick="openAddModal()">
-            <i class="ri-add-circle-line" style="font-size: 1.5rem;"></i>
-            <span>快入档</span>
-        </button>
-        <button class="nav-item" onclick="switchView('settings', this)">
-            <i class="ri-database-2-line"></i>
-            <span>全备份</span>
-        </button>
-    </nav>
+    <button class="floating-trigger" onclick="openArchiveModal()">
+        <i class="ri-add-line"></i>
+    </button>
 
-    <!-- 快入档弹窗 -->
-    <div class="modal" id="add-modal">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 15px; font-size:1rem; letter-spacing:1px;" id="modal-title">快入档 / 修改记录</h3>
-            
-            <div class="form-group">
-                <label>原平台作品网址</label>
-                <input type="text" id="work-url" placeholder="粘贴 AO3, LOFTER, X, 微博, Pixiv 等链接" oninput="autoRecognizePlatform()">
+    <div class="modal" id="archive-modal">
+        <div class="modal-blur" onclick="closeArchiveModal()"></div>
+        <div class="modal-window">
+            <div class="modal-header">
+                <h4><i class="ri-git-repository-private-line"></i> ENCAPSULATION // 作品入档封装</h4>
+                <button class="close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
             </div>
-
-            <div class="form-group">
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 2;">
-                        <label>标题</label>
-                        <input type="text" id="work-title" placeholder="作品名称">
+            <div class="modal-body">
+                <div class="input-row">
+                    <label>原发网址 (URL)</label>
+                    <input type="text" id="in-url" placeholder="粘贴 AO3, LOFTER, X, 微博 等链接" oninput="handleUrlAutoFill()">
+                </div>
+                <div class="input-group-2">
+                    <div class="input-row">
+                        <label>作品标题</label>
+                        <input type="text" id="in-title" placeholder="如：那件疯狂的小事">
                     </div>
-                    <div style="flex: 1;">
-                        <label>平台识别</label>
-                        <input type="text" id="work-platform" placeholder="如 AO3">
+                    <div class="input-row">
+                        <label>源平台</label>
+                        <input type="text" id="in-platform" placeholder="自动识别">
                     </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>太太 / 作者</label>
-                <input type="text" id="work-author" placeholder="作者署名">
-            </div>
-
-            <div class="form-group">
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label>所属圈子</label>
-                        <input type="text" id="work-fandom" placeholder="例：全职高手, 原神">
+                <div class="input-group-2">
+                    <div class="input-row">
+                        <label>创作太太</label>
+                        <input type="text" id="in-author" placeholder="作者名/ID">
                     </div>
-                    <div style="flex: 1;">
+                    <div class="input-row">
+                        <label>体裁类型</label>
+                        <select id="in-type">
+                            <option value="文">文字 (Text)</option>
+                            <option value="画">画作/图集 (Illustration)</option>
+                            <option value="视频">视频剪辑 (Video)</option>
+                            <option value="其他">其他周边/谷美</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="input-group-2">
+                    <div class="input-row">
+                        <label>所属圈子 (Fandom)</label>
+                        <input type="text" id="in-fandom" placeholder="如：诡秘之主">
+                    </div>
+                    <div class="input-row">
                         <label>CP / 配对角色</label>
-                        <input type="text" id="work-cp" placeholder="例：叶蓝, 无CP, 散人">
+                        <input type="text" id="in-cp" placeholder="如：克伦 (无CP填无)">
                     </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <div style="display: flex; gap: 10px;">
-                    <div style="flex: 1;">
-                        <label>追更/阅读状态</label>
-                        <select id="work-status">
-                            <option value="完结">完结</option>
+                <div class="input-group-2">
+                    <div class="input-row">
+                        <label>生存状态</label>
+                        <select id="in-status">
+                            <option value="完结">已完结</option>
                             <option value="连载">连载中</option>
-                            <option value="弃坑">原作者弃坑 / 避雷</option>
+                            <option value="弃坑">原作者已弃坑</option>
+                            <option value="孤本">【考古级】原帖已删/原作者销号</option>
                         </select>
                     </div>
-                    <div style="flex: 1;">
-                        <label>我的私人评分</label>
-                        <select id="work-rating">
-                            <option value="5">⭐⭐⭐⭐⭐ 绝赞神仙粮</option>
-                            <option value="4">⭐⭐⭐⭐ 优质好文</option>
-                            <option value="3">⭐⭐⭐ 顺眼可读</option>
-                            <option value="2">⭐⭐ 避雷/微妙</option>
-                            <option value="1">⭐ 极度踩雷</option>
-                        </select>
+                    <div class="input-row">
+                        <label>容量体量 (选填)</label>
+                        <input type="text" id="in-size" placeholder="例: 15w字 / 3P / 5分钟">
                     </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>自定义标签 (逗号分隔)</label>
-                <input type="text" id="work-tags" placeholder="萌点、雷点、避雷、HE、破镜重圆">
-            </div>
-
-            <div class="form-group">
-                <label>私人短评 / 进度记录 / 抢救性大纲备注</label>
-                <textarea id="work-comment" rows="3" placeholder="写点吃粮时的碎碎念，或者备忘：原作者若销号，此篇已存本地..."></textarea>
-            </div>
-
-            <input type="hidden" id="edit-id">
-
-            <div class="btn-group">
-                <button class="btn" onclick="closeAddModal()">取消</button>
-                <button class="btn primary" onclick="saveArchive()">封装入档</button>
+                <div class="input-row">
+                    <label>同人标签 (用逗号或空格分隔)</label>
+                    <input type="text" id="in-tags" placeholder="萌点如: HE, 强强；雷点请加“雷:”前缀如: 雷:生子">
+                </div>
+                <div class="input-row">
+                    <label>私人留存短评 / 进度提示 / 名场面备忘</label>
+                    <textarea id="in-comment" rows="4" placeholder="深夜读完此篇的碎碎念……或者：已经用TXT备份了全文，防止走丢。"></textarea>
+                </div>
+                <input type="hidden" id="in-id">
+                <button class="submit-cyber-btn" onclick="executeEncapsulation()">
+                    <span>CORE_ENCAPSULATION // 执行封装</span>
+                </button>
             </div>
         </div>
     </div>
 
-    <script>
-        // --- 初始化本地数据 ---
-        let archives = JSON.parse(localStorage.getItem('fandom_archives')) || [];
+    <div class="zen-viewer" id="zen-viewer">
+        <div class="zen-header">
+            <button class="zen-close" onclick="closeZenMode()"><i class="ri-arrow-left-line"></i> 返回库</button>
+            <span class="zen-meta-top" id="zen-meta-platform">AO3</span>
+        </div>
+        <div class="zen-container">
+            <h1 class="zen-title" id="zen-title">作品标题</h1>
+            <div class="zen-meta-line">
+                <span>BY: <strong id="zen-author">太太名</strong></span>
+                <span>FANDOM: <span id="zen-fandom">圈子</span></span>
+                <span>CP: <span id="zen-cp">配对</span></span>
+                <span>STATUS: <span id="zen-status">状态</span></span>
+            </div>
+            <div class="zen-tags" id="zen-tags"></div>
+            <div class="zen-divider"></div>
+            <div class="zen-content" id="zen-comment">
+                </div>
+            <div class="zen-footer-link">
+                <a id="zen-original-url" href="#" target="_blank"><i class="ri-link-m"></i> 访问原平台浏览作品</a>
+            </div>
+        </div>
+    </div>
 
-        // --- 核心业务逻辑 ---
-
-        // 自动识别同人平台
-        function autoRecognizePlatform() {
-            const url = document.getElementById('work-url').value.toLowerCase();
-            const platformInput = document.getElementById('work-platform');
-            
-            if (url.includes('archiveofourown.org') || url.includes('ao3')) {
-                platformInput.value = 'AO3';
-            } else if (url.includes('lofter.com')) {
-                platformInput.value = 'LOFTER';
-            } else if (url.includes('twitter.com') || url.includes('x.com')) {
-                platformInput.value = 'X';
-            } else if (url.includes('weibo.com') || url.includes('weibo.cn')) {
-                platformInput.value = '微博';
-            } else if (url.includes('pixiv.net')) {
-                platformInput.value = 'Pixiv';
-            } else if (url.includes('bilibili.com')) {
-                platformInput.value = 'Bilibili';
-            }
-        }
-
-        // 切换视图
-        function switchView(viewId, btn) {
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            
-            document.getElementById(`view-${viewId}`).classList.add('active');
-            btn.classList.add('active');
-            
-            if(viewId === 'home') renderArchiveList();
-        }
-
-        // 弹窗管理
-        function openAddModal(id = null) {
-            const modal = document.getElementById('add-modal');
-            modal.style.display = 'flex';
-            
-            if (id) {
-                document.getElementById('modal-title').innerText = "编辑存档记录";
-                const item = archives.find(a => a.id === id);
-                document.getElementById('edit-id').value = item.id;
-                document.getElementById('work-url').value = item.url;
-                document.getElementById('work-title').value = item.title;
-                document.getElementById('work-platform').value = item.platform;
-                document.getElementById('work-author').value = item.author;
-                document.getElementById('work-fandom').value = item.fandom;
-                document.getElementById('work-cp').value = item.cp;
-                document.getElementById('work-status').value = item.status;
-                document.getElementById('work-rating').value = item.rating;
-                document.getElementById('work-tags').value = item.tags.join(',');
-                document.getElementById('work-comment').value = item.comment;
-            } else {
-                document.getElementById('modal-title').innerText = "快入档";
-                document.getElementById('edit-id').value = '';
-                document.getElementById('work-url').value = '';
-                document.getElementById('work-title').value = '';
-                document.getElementById('work-platform').value = '';
-                document.getElementById('work-author').value = '';
-                document.getElementById('work-fandom').value = '';
-                document.getElementById('work-cp').value = '';
-                document.getElementById('work-status').value = '完结';
-                document.getElementById('work-rating').value = '5';
-                document.getElementById('work-tags').value = '';
-                document.getElementById('work-comment').value = '';
-            }
-        }
-
-        function closeAddModal() {
-            document.getElementById('add-modal').style.display = 'none';
-        }
-
-        // 保存/更新数据
-        function saveArchive() {
-            const id = document.getElementById('edit-id').value;
-            const fandom = document.getElementById('work-fandom').value.trim() || '未分类圈子';
-            const cp = document.getElementById('work-cp').value.trim() || '无CP/单独角色';
-            
-            const archiveData = {
-                id: id ? parseInt(id) : Date.now(),
-                url: document.getElementById('work-url').value.trim(),
-                title: document.getElementById('work-title').value.trim() || '未题名同人作品',
-                platform: document.getElementById('work-platform').value.trim() || '未知平台',
-                author: document.getElementById('work-author').value.trim() || '佚名太太',
-                fandom: fandom,
-                cp: cp,
-                status: document.getElementById('work-status').value,
-                rating: document.getElementById('work-rating').value,
-                tags: document.getElementById('work-tags').value.split(/[,，]/).map(t => t.trim()).filter(t => t),
-                comment: document.getElementById('work-comment').value,
-                updatedAt: new Date().toLocaleDateString()
-            };
-
-            if (id) {
-                const index = archives.findIndex(a => a.id === parseInt(id));
-                archives[index] = archiveData;
-            } else {
-                archives.unshift(archiveData);
-            }
-
-            localStorage.setItem('fandom_archives', JSON.stringify(archives));
-            closeAddModal();
-            renderArchiveList();
-        }
-
-        // 删除记录
-        function deleteArchive(id) {
-            if (confirm("确定要删除这条好不容易抢救回来的存档线索吗？")) {
-                archives = archives.filter(a => a.id !== id);
-                localStorage.setItem('fandom_archives', JSON.stringify(archives));
-                renderArchiveList();
-            }
-        }
-
-        // 渲染列表架构（聚合 圈子 -> CP -> 作品）
-        function renderArchiveList() {
-            const container = document.getElementById('archive-tree-container');
-            const searchKeyword = document.getElementById('global-search').value.toLowerCase();
-            container.innerHTML = '';
-
-            // 更新仪表盘数据
-            document.getElementById('stat-total').innerText = archives.length;
-            const uniqueFandoms = [...new Set(archives.map(a => a.fandom))].length;
-            document.getElementById('stat-fandoms').innerText = uniqueFandoms;
-            const readingCount = archives.filter(a => a.status === '连载').length;
-            document.getElementById('stat-reading').innerText = readingCount;
-
-            // 过滤搜索
-            const filtered = archives.filter(item => {
-                return item.title.toLowerCase().includes(searchKeyword) ||
-                       item.author.toLowerCase().includes(searchKeyword) ||
-                       item.fandom.toLowerCase().includes(searchKeyword) ||
-                       item.cp.toLowerCase().includes(searchKeyword) ||
-                       item.tags.some(t => t.toLowerCase().includes(searchKeyword));
-            });
-
-            // 结构化组织
-            const tree = {};
-            filtered.forEach(item => {
-                if (!tree[item.fandom]) tree[item.fandom] = {};
-                if (!tree[item.fandom][item.cp]) tree[item.fandom][item.cp] = [];
-                tree[item.fandom][item.cp].push(item);
-            });
-
-            // 循环渲染树形
-            for (const fandom in tree) {
-                const fandomNode = document.createElement('div');
-                fandomNode.className = 'tree-node';
-                fandomNode.innerHTML = `
-                    <div class="tree-header" onclick="toggleCollapse(this)">
-                        <span><i class="ri-hashtag"></i> ${fandom}</span>
-                        <span style="font-size:0.8rem; opacity:0.6;">${Object.keys(tree[fandom]).length} 个配对</span>
-                    </div>
-                    <div class="tree-children"></div>
-                `;
-                const fandomChildren = fandomNode.querySelector('.tree-children');
-
-                for (const cp in tree[fandom]) {
-                    const cpNode = document.createElement('div');
-                    cpNode.style.margin = '8px 0';
-                    cpNode.innerHTML = `
-                        <div style="font-size:0.85rem; font-weight:600; padding:4px 0; color:var(--text-color); opacity:0.8;">
-                           <i class="ri-heart-2-line"></i> ${cp}
-                        </div>
-                        <div class="cp-cards-container"></div>
-                    `;
-                    const cardContainer = cpNode.querySelector('.cp-cards-container');
-
-                    tree[fandom][cp].forEach(item => {
-                        const stars = '⭐'.repeat(parseInt(item.rating));
-                        const tagHtml = item.tags.map(t => `<span class="tag ${t.includes('雷')?'雷':''}">${t}</span>`).join('');
-                        
-                        const card = document.createElement('div');
-                        card.className = 'archive-card';
-                        card.innerHTML = `
-                            <div class="card-top">
-                                <a href="${item.url || 'javascript:void(0)'}" target="_blank" class="card-title">
-                                    ${item.title}
-                                </a>
-                                <span class="platform-badge">${item.platform}</span>
-                            </div>
-                            <div class="card-meta">
-                                <span>太太：${item.author}</span> | 
-                                <span><span class="status-dot status-${item.status}"></span>${item.status}</span> | 
-                                <span style="font-size:0.75rem;">${stars}</span>
-                            </div>
-                            ${tagHtml ? `<div class="card-tags">${tagHtml}</div>` : ''}
-                            ${item.comment ? `<div class="card-comment">${item.comment}</div>` : ''}
-                            <div style="font-size:0.7rem; color:var(--accent-color); margin-top:10px;">记录更新于: ${item.updatedAt}</div>
-                            <div class="card-actions">
-                                <span class="action-link" onclick="openAddModal(${item.id})"><i class="ri-edit-line"></i> 改档</span>
-                                <span class="action-link" onclick="deleteArchive(${item.id})"><i class="ri-delete-bin-6-line"></i> 销毁</span>
-                            </div>
-                        `;
-                        cardContainer.appendChild(card);
-                    });
-                    fandomChildren.appendChild(cpNode);
-                }
-                container.appendChild(fandomNode);
-            }
-        }
-
-        function toggleCollapse(el) {
-            const children = el.nextElementSibling;
-            children.style.display = children.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // --- 全局数据迁移 ---
-        function exportData() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(archives, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `fandom_archive_backup_${new Date().toISOString().slice(0,10)}.json`);
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
-
-        function importData() {
-            const fileInput = document.getElementById('import-file');
-            if (!fileInput.files.length) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (Array.isArray(imported)) {
-                        archives = imported;
-                        localStorage.setItem('fandom_archives', JSON.stringify(archives));
-                        alert('全局同步备份入库成功！');
-                        renderArchiveList();
-                    } else {
-                        alert('备份数据格式不符合规范。');
-                    }
-                } catch(err) {
-                    alert('导入失败，请确保上传了正确的 JSON 备份文件。');
-                }
-            };
-            reader.readAsText(fileInput.files[0]);
-        }
-
-        // --- UI 主题与动效背景 ---
-        function toggleTheme() {
-            const body = document.body;
-            const icon = document.getElementById('theme-icon');
-            if (body.getAttribute('data-theme') === 'dark') {
-                body.setAttribute('data-theme', 'light');
-                icon.className = 'ri-sun-line';
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                icon.className = 'ri-moon-line';
-            }
-        }
-
-        // 极简类似 Motion Graphic 的几何群星连线效果
-        const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = (Math.random() - 0.5) * 0.4;
-                this.vy = (Math.random() - 0.5) * 0.4;
-                this.radius = Math.random() * 1.5 + 1;
-            }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-            }
-            draw() {
-                const isDark = document.body.getAttribute('data-theme') === 'dark';
-                ctx.fillStyle = isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.1)';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function initParticles() {
-            particles = [];
-            const count = Math.min(Math.floor(canvas.width / 15), 60);
-            for(let i=0; i<count; i++) particles.push(new Particle());
-        }
-        initParticles();
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            const isDark = document.body.getAttribute('data-theme') === 'dark';
-            
-            // 绘制点
-            particles.forEach(p => {
-                p.update();
-                p.draw();
-            });
-
-            // 绘制几何连线
-            ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)';
-            ctx.lineWidth = 0.8;
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
-                    if (dist < 120) {
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-            requestAnimationFrame(animate);
-        }
-        animate();
-
-        // 页面初始化加载
-        document.addEventListener("DOMContentLoaded", () => {
-            renderArchiveList();
-        });
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
