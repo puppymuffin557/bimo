@@ -2,385 +2,704 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>bimo // 私人同人存档</title>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
+    <title>同人·星轨存档 | 私人档案馆</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s;
+        }
+
+        /* 深色/浅色 变量 */
+        :root {
+            --bg-base: #f8f8f8;
+            --bg-surface: #ffffff;
+            --text-primary: #111111;
+            --text-secondary: #444444;
+            --border: #cccccc;
+            --accent: #000000;
+            --accent-soft: #333333;
+            --card-shadow: 0 2px 8px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.05);
+            --tag-bg: #e6e6e6;
+            --status-active: #000;
+            --status-inactive: #aaa;
+        }
+
+        body.dark {
+            --bg-base: #0a0a0a;
+            --bg-surface: #121212;
+            --text-primary: #eeeeee;
+            --text-secondary: #aaaaaa;
+            --border: #2c2c2c;
+            --accent: #ffffff;
+            --accent-soft: #dddddd;
+            --card-shadow: 0 2px 12px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.05);
+            --tag-bg: #2a2a2a;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            font-weight: 400;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 粒子 + 网格canvas背景 */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.35;
+        }
+        body.dark #bg-canvas {
+            opacity: 0.5;
+        }
+
+        /* 主容器 */
+        .app-container {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 20px 16px 80px 16px;
+        }
+
+        /* 头部 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+        }
+        .logo h1 {
+            font-size: 1.7rem;
+            letter-spacing: -0.02em;
+            font-weight: 600;
+        }
+        .logo p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .theme-toggle {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: var(--card-shadow);
+        }
+
+        /* 导航卡片tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 20px 0 24px 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 8px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 30px;
+        }
+        .tab-btn.active {
+            background: var(--accent);
+            color: var(--bg-base);
+        }
+
+        /* 卡片/区块 */
+        .card {
+            background: var(--bg-surface);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+        }
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .grid-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .stat-item {
+            background: var(--bg-base);
+            border-radius: 16px;
+            padding: 12px;
+            text-align: center;
+        }
+        /* 圈子树 */
+        .circle-group {
+            margin-bottom: 24px;
+        }
+        .circle-header {
+            font-weight: 700;
+            font-size: 1.2rem;
+            border-left: 4px solid var(--accent);
+            padding-left: 12px;
+            margin: 12px 0 8px 0;
+        }
+        .cp-block {
+            margin-left: 16px;
+            margin-top: 8px;
+            margin-bottom: 12px;
+            border-left: 1px dashed var(--border);
+            padding-left: 12px;
+        }
+        .cp-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 8px 0 6px 0;
+            color: var(--accent-soft);
+        }
+        .work-item {
+            background: var(--bg-base);
+            border-radius: 16px;
+            padding: 12px;
+            margin: 8px 0;
+            transition: 0.1s;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+        .work-item:hover {
+            border-color: var(--accent);
+        }
+        .work-title {
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .tag {
+            background: var(--tag-bg);
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 30px;
+        }
+        .badge-status {
+            font-size: 0.7rem;
+            background: var(--accent);
+            color: var(--bg-base);
+            padding: 2px 10px;
+            border-radius: 30px;
+        }
+        button, .button-like {
+            background: var(--accent);
+            color: var(--bg-base);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .button-outline {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            color: var(--text-primary);
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+        .flex-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .star-rating {
+            display: flex;
+            gap: 6px;
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        .modal {
+            position: fixed;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: var(--bg-surface);
+            max-width: 90%;
+            width: 460px;
+            border-radius: 32px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .hide {
+            display: none;
+        }
+        @media (max-width: 640px) {
+            .app-container {
+                padding: 12px 12px 70px;
+            }
+        }
+        hr {
+            border-color: var(--border);
+            margin: 12px 0;
+        }
+    </style>
 </head>
-<body data-theme="dark">
+<body>
+<canvas id="bg-canvas"></canvas>
+<div class="app-container" id="app"></div>
 
-    <div class="bg-grid"></div>
-    <canvas id="mg-canvas"></canvas>
+<script>
+    // ---------- 数据模型 ----------
+    let circles = [];       // [{ id, name }]
+    let couples = [];      // [{ id, circleId, name, isNonCp: false }]  isNonCp 代表无CP组(角色向/无CP)
+    let works = [];        // 作品数组
 
-    <header class="top-bar glass">
-        <div class="brand-zone">
-            <span class="logo-dot"></span>
-            <h1 class="app-name">bimo</h1>
-        </div>
-        
-        <div class="top-search-box">
-            <i class="ri-search-line"></i>
-            <input type="text" id="global-search" placeholder="输入关键词、作者、CP、TAG..." oninput="handleGlobalSearch()">
-        </div>
+    // 辅助ID
+    function genId() { return Date.now() + '-' + Math.random().toString(36).substr(2, 6); }
 
-        <button class="theme-toggle-btn" onclick="toggleTheme()">
-            <i class="ri-moon-line" id="theme-icon"></i>
-        </button>
-    </header>
+    // 默认初始数据
+    const defaultData = {
+        circles: [{ id: "c1", name: "咒术回战" }, { id: "c2", name: "原神" }, { id: "c3", name: "全职高手" }],
+        couples: [
+            { id: "cp1", circleId: "c1", name: "五悠", isNonCp: false },
+            { id: "cp2", circleId: "c1", name: "宿伏", isNonCp: false },
+            { id: "cp_none1", circleId: "c1", name: "无CP/群像", isNonCp: true },
+            { id: "cp3", circleId: "c2", name: "钟离×达达利亚", isNonCp: false },
+            { id: "cp_none2", circleId: "c2", name: "单人向/无CP", isNonCp: true },
+            { id: "cp4", circleId: "c3", name: "叶黄", isNonCp: false }
+        ],
+        works: [
+            { id: "w1", title: "星轨与誓言", author: "太太A", url: "https://archiveofourown.org/works/12345", platform: "AO3", circleId: "c1", cpId: "cp1", customTags: ["HE","原著向"], rating: 5, comment: "神作！", createTime: Date.now() - 86400000, lastUpdated: "2025-02-10", status: "完结", progress: "已读完" },
+            { id: "w2", title: "尘世闲游", author: "画手B", url: "https://lofter.com/xxx", platform: "LOFTER", circleId: "c2", cpId: "cp3", customTags: ["绝美插画"], rating: 4, comment: "氛围太好了", createTime: Date.now(), lastUpdated: "2025-01-20", status: "连载", progress: "看到第5章" }
+        ]
+    };
 
-    <main class="app-viewport">
-        
-        <section id="view-home" class="view-panel active">
-            <div class="stats-container">
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-total">0</span>
-                    <span class="lbl">已封存</span>
-                </div>
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-fandoms">0</span>
-                    <span class="lbl">多圈历程</span>
-                </div>
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-lost">0</span>
-                    <span class="lbl">全网孤本</span>
+    function loadData() {
+        const stored = localStorage.getItem("fandomArchive");
+        if(stored) {
+            try{
+                const data = JSON.parse(stored);
+                circles = data.circles || [];
+                couples = data.couples || [];
+                works = data.works || [];
+            } catch(e){}
+        }
+        if(!circles.length){
+            circles = defaultData.circles;
+            couples = defaultData.couples;
+            works = defaultData.works;
+            saveData();
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem("fandomArchive", JSON.stringify({ circles, couples, works }));
+    }
+
+    // 辅助函数: 获取圈子名字 CP名字
+    function getCircleName(cid) { return circles.find(c=>c.id===cid)?.name || "未知圈子"; }
+    function getCpName(cpid, circleId) {
+        if(!cpid) return "未分类";
+        let cp = couples.find(c=>c.id===cpid);
+        if(cp) return cp.name;
+        return "自定义CP";
+    }
+
+    // 按圈子+CP分组作品
+    function groupWorksByCircleAndCP() {
+        let map = new Map(); // circleId -> { circle, cpMap: Map<cpId, {cpName, works[], isNonCp}> }
+        circles.forEach(c => {
+            map.set(c.id, { circle: c, cpMap: new Map() });
+        });
+        // 未分配圈子的作品放到一个虚拟「未分类」
+        works.forEach(w => {
+            let targetCircle = w.circleId && map.has(w.circleId) ? w.circleId : null;
+            if(!targetCircle) {
+                if(!map.has("__unclassified")){
+                    map.set("__unclassified", { circle: { id:"__unclassified", name:"未分类圈子" }, cpMap: new Map() });
+                }
+                targetCircle = "__unclassified";
+            }
+            let group = map.get(targetCircle);
+            let cpKey = w.cpId || "none";
+            if(!group.cpMap.has(cpKey)){
+                let cpName = (w.cpId && couples.find(c=>c.id===w.cpId)?.name) || "无CP/独立";
+                let isNonCp = w.cpId ? (couples.find(c=>c.id===w.cpId)?.isNonCp || false) : true;
+                group.cpMap.set(cpKey, { cpId: cpKey, cpName, works: [], isNonCp });
+            }
+            group.cpMap.get(cpKey).works.push(w);
+        });
+        return map;
+    }
+
+    // 当前UI状态
+    let activeTab = "dashboard"; // dashboard, library, add, search, settings
+    let currentEditWork = null; // 编辑或查看详情
+    let searchKeyword = "";
+
+    // 渲染主入口
+    function render() {
+        const app = document.getElementById("app");
+        if(!app) return;
+        app.innerHTML = `
+            <div class="header">
+                <div class="logo"><h1>◈ 星轨存档 ◈</h1><p>同人·私人档案馆</p></div>
+                <button class="theme-toggle" id="themeSwitch">🌓 深色模式</button>
+            </div>
+            <div class="nav-tabs">
+                <button class="tab-btn ${activeTab==='dashboard'?'active':''}" data-tab="dashboard">📊 仪表盘</button>
+                <button class="tab-btn ${activeTab==='library'?'active':''}" data-tab="library">📚 分类库</button>
+                <button class="tab-btn ${activeTab==='add'?'active':''}" data-tab="add">✨ 快速存档</button>
+                <button class="tab-btn ${activeTab==='search'?'active':''}" data-tab="search">🔍 全局搜索</button>
+                <button class="tab-btn ${activeTab==='settings'?'active':''}" data-tab="settings">⚙️ 备份/导入</button>
+            </div>
+            <div id="tabContent">${renderTabContent()}</div>
+        `;
+        attachTabEvents();
+        document.getElementById("themeSwitch")?.addEventListener("click", toggleDarkMode);
+        // 额外事件绑定
+        if(activeTab === "add") bindAddWorkEvents();
+        if(activeTab === "search") bindSearchEvents();
+        if(activeTab === "settings") bindSettingsEvents();
+        attachWorkItemClicks();
+        attachRatingStars();
+    }
+
+    function renderTabContent() {
+        if(activeTab === "dashboard") return renderDashboard();
+        if(activeTab === "library") return renderLibrary();
+        if(activeTab === "add") return renderAddWork();
+        if(activeTab === "search") return renderSearch();
+        if(activeTab === "settings") return renderSettings();
+        return "";
+    }
+
+    function renderDashboard() {
+        const totalWorks = works.length;
+        const recentWorks = [...works].sort((a,b)=> b.createTime - a.createTime).slice(0,5);
+        const ongoingWorks = works.filter(w=> w.status === "连载").length;
+        const circlesCount = circles.length;
+        return `
+            <div class="card">
+                <div class="section-title">📌 本月概览</div>
+                <div class="grid-stats">
+                    <div class="stat-item"><strong>📄 总作品</strong><br>${totalWorks}</div>
+                    <div class="stat-item"><strong>🔄 追更中</strong><br>${ongoingWorks}</div>
+                    <div class="stat-item"><strong>🌀 圈子数</strong><br>${circlesCount}</div>
+                    <div class="stat-item"><strong>❤️ CP数</strong><br>${couples.length}</div>
                 </div>
             </div>
-            
-            <div class="view-title">最近入库 & 重温</div>
-            <div id="recent-list" class="cards-stack"></div>
-        </section>
-
-        <section id="view-search" class="view-panel">
-            <div class="view-title">全局搜索结果</div>
-            <div id="search-results-list" class="cards-stack"></div>
-        </section>
-
-        <section id="view-fandoms" class="view-panel">
-            <div class="view-title">圈子 / 配对索引</div>
-            <div id="fandoms-tree-container"></div>
-        </section>
-
-        <section id="view-progress" class="view-panel">
-            <div class="view-title">追更状态主控</div>
-            <div class="progress-tabs">
-                <button class="p-tab active" onclick="filterProgress('连载')">连载中</button>
-                <button class="p-tab" onclick="filterProgress('完结')">已完结</button>
-                <button class="p-tab" onclick="filterProgress('弃坑')">原作者弃坑</button>
-                <button class="p-tab" onclick="filterProgress('孤本')">孤本/已蒸发</button>
+            <div class="card">
+                <div class="section-title">🕒 最近添加</div>
+                ${recentWorks.map(w=>`<div class="work-item" data-work-id="${w.id}"><b>${escapeHtml(w.title)}</b> · ${w.author}<br><small>${new Date(w.createTime).toLocaleDateString()}</small><span class="tag">${w.status||'?'}</span></div>`).join('') || '<div>暂无存档，快去添加吧</div>'}
             </div>
-            <div id="progress-list" class="cards-stack" style="margin-top: 15px;"></div>
-        </section>
-
-        <section id="view-backup" class="view-panel">
-            <div class="view-title">数据管理 / 迁移</div>
-            <div class="backup-box glass">
-                <p class="status-text">> LOCAL_STORAGE: ACTIVE</p>
-                <p class="info-text">所有数据均独立存在当前浏览器中。换设备或清理缓存前，请务必执行备份。</p>
-                
-                <div class="backup-buttons">
-                    <button class="action-btn-pill primary" onclick="exportDataVault()">
-                        <i class="ri-download-cloud-line"></i> 导出全量备份 (.json)
-                    </button>
-                    <label class="action-btn-pill">
-                        <i class="ri-upload-cloud-line"></i> 导入备份文件
-                        <input type="file" id="import-file-input" accept=".json" onchange="importDataVault()" style="display:none;">
-                    </label>
-                </div>
+            <div class="card">
+                <div class="section-title">⚠️ 追更提醒 (连载中)</div>
+                ${works.filter(w=>w.status==="连载").map(w=>`<div class="work-item" data-work-id="${w.id}">📖 ${escapeHtml(w.title)} 进度: ${w.progress || '未记录'}</div>`).join('')||'<div>目前没有连载作品</div>'}
             </div>
-        </section>
+        `;
+    }
 
-    </main>
+    function renderLibrary() {
+        const grouped = groupWorksByCircleAndCP();
+        let html = `<div class="card"><div class="section-title">📂 圈子 · CP 层级</div>`;
+        for(let [cid, group] of grouped.entries()) {
+            let circleName = group.circle.name;
+            html += `<div class="circle-group"><div class="circle-header">◉ ${escapeHtml(circleName)}</div>`;
+            for(let [cpId, cpGroup] of group.cpMap.entries()) {
+                html += `<div class="cp-block"><div class="cp-title">${cpGroup.isNonCp ? '🕊️ ' : '❤️ '}${escapeHtml(cpGroup.cpName)}</div>`;
+                cpGroup.works.forEach(work => {
+                    html += `<div class="work-item" data-work-id="${work.id}">
+                        <div class="work-title"><span>📌 ${escapeHtml(work.title)}</span> <span class="badge-status">${work.status||'未知'}</span></div>
+                        <div>✍️ ${escapeHtml(work.author)} · ${work.platform || '未知平台'}</div>
+                        <div class="tags">${work.customTags?.map(t=>`<span class="tag">#${escapeHtml(t)}</span>`).join('') || ''}</div>
+                        <small>⭐ ${work.rating || '无评分'}</small>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
+        }
+        html += `</div>`;
+        return html;
+    }
 
-    <button class="floating-add-btn" onclick="openArchiveModal()">
-        <i class="ri-add-line"></i>
-    </button>
+    // 快速新增自动识别平台
+    function detectPlatform(url) {
+        if(!url) return "";
+        if(url.includes("archiveofourown.org")) return "AO3";
+        if(url.includes("lofter.com")) return "LOFTER";
+        if(url.includes("twitter.com")||url.includes("x.com")) return "X / Twitter";
+        if(url.includes("pixiv.net")) return "Pixiv";
+        if(url.includes("weibo.com")) return "微博";
+        return "其他平台";
+    }
 
-    <nav class="bottom-tabbar glass">
-        <button class="tab-item active" onclick="switchView('home', this)">
-            <i class="ri-home-5-line"></i><span>主页</span>
-        </button>
-        <button class="tab-item" onclick="switchView('search', this)">
-            <i class="ri-search-eye-line"></i><span>搜索</span>
-        </button>
-        <button class="tab-item" onclick="switchView('fandoms', this)">
-            <i class="ri-folder-shield-2-line"></i><span>圈子</span>
-        </button>
-        <button class="tab-item" onclick="switchView('progress', this)">
-            <i class="ri-compass-3-line"></i><span>进度</span>
-        </button>
-        <button class="tab-item" onclick="switchView('backup', this)">
-            <i class="ri-database-2-line"></i><span>备份</span>
-        </button>
-    </nav>
+    function renderAddWork() {
+        return `
+        <div class="card">
+            <div class="section-title">⚡ 粘贴链接·极速存档</div>
+            <input type="text" id="workUrl" placeholder="粘贴作品链接 (自动识别平台)" />
+            <div id="platformHint" style="font-size:0.75rem; margin-top:-8px; margin-bottom:12px;"></div>
+            <input type="text" id="workTitle" placeholder="标题 *" />
+            <input type="text" id="workAuthor" placeholder="作者 / 太太" />
+            <select id="circleSelect"><option value="">选择圈子 (可新增)</option>${circles.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}<option value="NEW">➕ 新建圈子</option></select>
+            <div id="newCircleInput" style="display:none;"><input type="text" id="newCircleName" placeholder="新圈子名称" /></div>
+            <select id="cpSelect"><option value="">选择CP (或留空)</option>${couples.map(cp=>`<option value="${cp.id}">${cp.isNonCp ? '🕊️' : '❤️'} ${escapeHtml(cp.name)}</option>`).join('')}<option value="NEW_CP">➕ 新建CP/无CP组</option></select>
+            <div id="newCpInput" style="display:none;"><input type="text" id="newCpName" placeholder="CP名称 (例: 五悠, 或输入“无CP/单人向”)" /><label><input type="checkbox" id="isNonCp"> 标记为无CP/角色向</label></div>
+            <input type="text" id="tagsInput" placeholder="自定义标签，用逗号分隔 (萌点/雷点/避雷)" />
+            <div class="star-rating" id="ratingStars">⭐ ⭐ ⭐ ⭐ ⭐</div>
+            <textarea rows="2" id="commentShort" placeholder="私人短评 / 食用提示"></textarea>
+            <select id="workStatus"><option value="连载">📖 连载中</option><option value="完结">✅ 已完结</option><option value="弃坑">💔 已弃坑</option></select>
+            <input type="text" id="progressLog" placeholder="最新进度 (如: 读到第8章/追至最新)" />
+            <input type="text" id="lastUpdateDate" placeholder="作品最后更新时间 (可选) 例: 2025-02-20" />
+            <button id="saveWorkBtn">✨ 保存至档案馆</button>
+        </div>`;
+    }
 
-    <div class="modal-overlay" id="archive-modal">
-        <div class="modal-window glass">
-            <div class="modal-header">
-                <h2>作品封装入档</h2>
-                <button class="modal-close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="field-box">
-                    <label>作品原址 URL</label>
-                    <input type="text" id="form-url" placeholder="粘贴网址" oninput="autoDetectPlatform()">
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>作品标题</label>
-                        <input type="text" id="form-title" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>识别平台</label>
-                        <input type="text" id="form-platform" placeholder="">
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>创作者 (太太)</label>
-                        <input type="text" id="form-author" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>体裁</label>
-                        <select id="form-type">
-                            <option value="文">文</option>
-                            <option value="画">画</option>
-                            <option value="视频">视频</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>所属圈子</label>
-                        <input type="text" id="form-fandom" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>CP / 配对角色</label>
-                        <input type="text" id="form-cp" placeholder="">
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>生存/阅读状态</label>
-                        <select id="form-status">
-                            <option value="完结">已完结</option>
-                            <option value="连载">连载中</option>
-                            <option value="弃坑">原作者弃坑</option>
-                            <option value="孤本">孤本(已删/销号)</option>
-                        </select>
-                    </div>
-                    <div class="field-box">
-                        <label>体量 (选填)</label>
-                        <input type="text" id="form-size" placeholder="如: 5w字 / 4P">
-                    </div>
-                </div>
-                <div class="field-box">
-                    <label>自定义标签 (用空格或逗号隔开)</label>
-                    <input type="text" id="form-tags" placeholder="萌点，若为雷点请加“雷:”前缀">
-                </div>
-                <div class="field-box">
-                    <label>碎碎念 / 核心看点 / 摘要长评</label>
-                    <textarea id="form-comment" rows="5" placeholder="在此记录你的阅读碎碎念、剧情高能点或防丢备份摘要..."></textarea>
-                </div>
-                <input type="hidden" id="form-edit-id">
-                <button class="submit-btn" onclick="submitEncapsulation()">封 存 入 档</button>
-            </div>
-        </div>
-    </div>
+    function bindAddWorkEvents() {
+        const urlInput = document.getElementById("workUrl");
+        const platformHint = document.getElementById("platformHint");
+        const circleSelect = document.getElementById("circleSelect");
+        const newCircleDiv = document.getElementById("newCircleInput");
+        const cpSelect = document.getElementById("cpSelect");
+        const newCpDiv = document.getElementById("newCpInput");
+        const ratingStarsDiv = document.getElementById("ratingStars");
+        let currentRating = 0;
+        if(ratingStarsDiv){
+            ratingStarsDiv.querySelectorAll("span, .star-symbol").length === 0 && (ratingStarsDiv.innerHTML = Array(5).fill().map((_,i)=>`<span data-rating="${i+1}">${i<currentRating?'★':'☆'}</span>`).join(''));
+            ratingStarsDiv.addEventListener("click", (e)=>{
+                const starSpan = e.target.closest("[data-rating]");
+                if(starSpan){
+                    currentRating = parseInt(starSpan.dataset.rating);
+                    ratingStarsDiv.innerHTML = Array(5).fill().map((_,i)=>`<span data-rating="${i+1}">${i<currentRating?'★':'☆'}</span>`).join('');
+                }
+            });
+        }
 
-    <script src="app.js"></script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>bimo // 私人同人存档</title>
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body data-theme="dark">
+        urlInput?.addEventListener("input", (e)=>{
+            let url = e.target.value;
+            let platform = detectPlatform(url);
+            platformHint.innerText = platform ? `识别平台: ${platform}` : "等待输入链接";
+        });
+        circleSelect?.addEventListener("change", (e)=>{
+            newCircleDiv.style.display = e.target.value === "NEW" ? "block" : "none";
+        });
+        cpSelect?.addEventListener("change", (e)=>{
+            newCpDiv.style.display = e.target.value === "NEW_CP" ? "block" : "none";
+        });
+        document.getElementById("saveWorkBtn")?.addEventListener("click", ()=>{
+            const url = document.getElementById("workUrl").value.trim();
+            if(!url) return alert("请填写链接");
+            const title = document.getElementById("workTitle").value.trim();
+            if(!title) return alert("请填写标题");
+            const author = document.getElementById("workAuthor").value.trim() || "佚名";
+            let circleId = circleSelect.value;
+            if(circleId === "NEW"){
+                let newCircleName = document.getElementById("newCircleName")?.value.trim();
+                if(!newCircleName) return alert("请输入新圈子名称");
+                let newC = { id: genId(), name: newCircleName };
+                circles.push(newC);
+                saveData();
+                circleId = newC.id;
+            }
+            let cpId = cpSelect.value;
+            if(cpId === "NEW_CP"){
+                let newCpName = document.getElementById("newCpName")?.value.trim();
+                if(!newCpName) return alert("请输入CP或分组名称");
+                let isNonCp = document.getElementById("isNonCp")?.checked || false;
+                let newCp = { id: genId(), circleId: circleId, name: newCpName, isNonCp };
+                couples.push(newCp);
+                saveData();
+                cpId = newCp.id;
+            }
+            const tagsRaw = document.getElementById("tagsInput").value;
+            const tags = tagsRaw.split(",").map(s=>s.trim()).filter(s=>s);
+            const comment = document.getElementById("commentShort").value;
+            const status = document.getElementById("workStatus").value;
+            const progress = document.getElementById("progressLog").value;
+            const lastUpdated = document.getElementById("lastUpdateDate").value;
+            const rating = currentRating;
+            const platform = detectPlatform(url);
+            const newWork = {
+                id: genId(), title, author, url, platform, circleId, cpId: cpId || null,
+                customTags: tags, rating, comment, createTime: Date.now(),
+                lastUpdated: lastUpdated || new Date().toISOString().slice(0,10),
+                status, progress
+            };
+            works.push(newWork);
+            saveData();
+            alert("作品已存入星轨！");
+            activeTab = "library";
+            render();
+        });
+    }
 
-    <div class="bg-grid"></div>
-    <canvas id="mg-canvas"></canvas>
+    function renderSearch() {
+        return `<div class="card"><input type="text" id="searchInput" placeholder="搜索标题/作者/标签/CP/角色..." value="${escapeHtml(searchKeyword)}"/><div id="searchResults"></div></div>`;
+    }
+    function bindSearchEvents() {
+        const input = document.getElementById("searchInput");
+        const resultsDiv = document.getElementById("searchResults");
+        const performSearch = () => {
+            const kw = input.value.toLowerCase();
+            const filtered = works.filter(w=> w.title.toLowerCase().includes(kw) || w.author.toLowerCase().includes(kw) || (w.customTags||[]).some(t=>t.toLowerCase().includes(kw)) || getCpName(w.cpId, w.circleId).toLowerCase().includes(kw));
+            resultsDiv.innerHTML = filtered.map(w=>`<div class="work-item" data-work-id="${w.id}"><b>${escapeHtml(w.title)}</b> by ${escapeHtml(w.author)}<br><span class="tag">${w.platform||''}</span> ${w.status}</div>`).join('')||'无结果';
+            attachWorkItemClicks();
+        };
+        input.addEventListener("input", performSearch);
+        performSearch();
+    }
 
-    <header class="top-bar glass">
-        <div class="brand-zone">
-            <span class="logo-dot"></span>
-            <h1 class="app-name">bimo</h1>
-        </div>
-        
-        <div class="top-search-box">
-            <i class="ri-search-line"></i>
-            <input type="text" id="global-search" placeholder="输入关键词、作者、CP、TAG..." oninput="handleGlobalSearch()">
-        </div>
+    function renderSettings() {
+        return `<div class="card"><div class="section-title">💾 全局备份 & 迁移</div><button id="exportArchive" class="button-like">📤 导出存档 (JSON)</button><button id="importBtn" class="button-outline" style="margin-left:12px;">📂 导入备份</button><input type="file" id="importFileInput" accept=".json" style="display:none"/><hr/><button id="resetDemoData">重置演示数据 (谨慎)</button><div class="tag" style="margin-top:12px;">⚡ 全部数据保存在浏览器本地，支持换设备前导出再导入</div></div>`;
+    }
+    function bindSettingsEvents() {
+        document.getElementById("exportArchive")?.addEventListener("click", ()=>{
+            const dataStr = JSON.stringify({circles, couples, works}, null, 2);
+            const blob = new Blob([dataStr], {type: "application/json"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob); a.download = `fandom_archive_${new Date().toISOString().slice(0,19)}.json`; a.click();
+        });
+        const importFile = document.getElementById("importFileInput");
+        document.getElementById("importBtn")?.addEventListener("click", ()=> importFile.click());
+        importFile?.addEventListener("change", (e)=>{
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev)=>{
+                try{
+                    const data = JSON.parse(ev.target.result);
+                    if(data.circles && data.couples && data.works){
+                        circles = data.circles; couples = data.couples; works = data.works;
+                        saveData();
+                        alert("导入成功！刷新界面"); render();
+                    } else alert("文件格式不对");
+                }catch(e){ alert("解析失败"); }
+            };
+            reader.readAsText(file);
+        });
+        document.getElementById("resetDemoData")?.addEventListener("click", ()=>{
+            if(confirm("重置将会覆盖当前所有数据，恢复示例存档")){
+                circles = defaultData.circles; couples = defaultData.couples; works = defaultData.works;
+                saveData(); render();
+            }
+        });
+    }
 
-        <button class="theme-toggle-btn" onclick="toggleTheme()">
-            <i class="ri-moon-line" id="theme-icon"></i>
-        </button>
-    </header>
+    function attachWorkItemClicks() {
+        document.querySelectorAll("[data-work-id]").forEach(el=>{
+            el.addEventListener("click", (e)=>{
+                e.stopPropagation();
+                const workId = el.getAttribute("data-work-id");
+                const work = works.find(w=>w.id===workId);
+                if(work) showWorkDetailModal(work);
+            });
+        });
+    }
+    function showWorkDetailModal(work) {
+        const modalDiv = document.createElement("div"); modalDiv.className = "modal";
+        modalDiv.innerHTML = `<div class="modal-content"><h2>${escapeHtml(work.title)}</h2><div><strong>作者:</strong> ${escapeHtml(work.author)}</div><div><strong>平台:</strong> ${work.platform}</div><div><strong>链接:</strong> <a href="${work.url}" target="_blank">${work.url.substring(0,50)}</a></div><div><strong>圈子:</strong> ${getCircleName(work.circleId)}</div><div><strong>CP/分组:</strong> ${getCpName(work.cpId, work.circleId)}</div><div><strong>标签:</strong> ${work.customTags?.map(t=>'#'+t).join(', ')||'无'}</div><div><strong>评分:</strong> ${'★'.repeat(work.rating||0)}${'☆'.repeat(5-(work.rating||0))}</div><div><strong>短评:</strong> ${work.comment||'无'}</div><div><strong>状态:</strong> ${work.status} | 进度: ${work.progress||'未记'}</div><div><strong>收藏时间:</strong> ${new Date(work.createTime).toLocaleString()}</div><div><strong>作品最后更新:</strong> ${work.lastUpdated||'未知'}</div><div class="flex-row" style="margin-top:16px;"><button id="editWorkStatusBtn">✏️ 更新进度/状态</button><button class="button-outline" id="closeModal">关闭</button></div></div>`;
+        document.body.appendChild(modalDiv);
+        document.getElementById("editWorkStatusBtn")?.addEventListener("click", ()=>{
+            let newStatus = prompt("新状态 (连载/完结/弃坑):", work.status);
+            let newProgress = prompt("最新进度:", work.progress||"");
+            if(newStatus) work.status = newStatus;
+            if(newProgress !== null) work.progress = newProgress;
+            saveData();
+            modalDiv.remove(); render();
+        });
+        document.getElementById("closeModal")?.addEventListener("click", ()=>modalDiv.remove());
+    }
 
-    <main class="app-viewport">
-        
-        <section id="view-home" class="view-panel active">
-            <div class="stats-container">
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-total">0</span>
-                    <span class="lbl">已封存</span>
-                </div>
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-fandoms">0</span>
-                    <span class="lbl">多圈历程</span>
-                </div>
-                <div class="stat-bubble glass">
-                    <span class="num" id="stat-lost">0</span>
-                    <span class="lbl">全网孤本</span>
-                </div>
-            </div>
-            
-            <div class="view-title">最近入库 & 重温</div>
-            <div id="recent-list" class="cards-stack"></div>
-        </section>
+    function attachRatingStars() {}
+    function attachTabEvents() {
+        document.querySelectorAll(".tab-btn").forEach(btn=>{
+            btn.addEventListener("click", (e)=>{
+                const tab = btn.getAttribute("data-tab");
+                if(tab) activeTab = tab;
+                render();
+            });
+        });
+    }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;});}
+    function toggleDarkMode() {
+        document.body.classList.toggle("dark");
+        localStorage.setItem("darkMode", document.body.classList.contains("dark"));
+    }
+    // 粒子网格背景
+    function initParticleGrid() {
+        const canvas = document.getElementById("bg-canvas");
+        const ctx = canvas.getContext("2d");
+        let width, height;
+        let particles = [];
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener("resize", resize);
+        resize();
+        for(let i=0;i<80;i++){
+            particles.push({x:Math.random()*width, y:Math.random()*height, vx:(Math.random()-0.5)*0.2, vy:(Math.random()-0.5)*0.1});
+        }
+        function draw() {
+            if(!ctx) return;
+            ctx.clearRect(0,0,width,height);
+            ctx.strokeStyle = document.body.classList.contains("dark") ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.12)";
+            ctx.lineWidth = 0.5;
+            let step = 45;
+            for(let x=0; x<width; x+=step){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke();}
+            for(let y=0; y<height; y+=step){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke();}
+            ctx.fillStyle = document.body.classList.contains("dark") ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.6)";
+            particles.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x, p.y, 1.2, 0, Math.PI*2); ctx.fill(); p.x+=p.vx; p.y+=p.vy; if(p.x<0) p.x=width; if(p.x>width)p.x=0; if(p.y<0)p.y=height; if(p.y>height)p.y=0; });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
 
-        <section id="view-search" class="view-panel">
-            <div class="view-title">全局搜索结果</div>
-            <div id="search-results-list" class="cards-stack"></div>
-        </section>
-
-        <section id="view-fandoms" class="view-panel">
-            <div class="view-title">圈子 / 配对索引</div>
-            <div id="fandoms-tree-container"></div>
-        </section>
-
-        <section id="view-progress" class="view-panel">
-            <div class="view-title">追更状态主控</div>
-            <div class="progress-tabs">
-                <button class="p-tab active" onclick="filterProgress('连载')">连载中</button>
-                <button class="p-tab" onclick="filterProgress('完结')">已完结</button>
-                <button class="p-tab" onclick="filterProgress('弃坑')">原作者弃坑</button>
-                <button class="p-tab" onclick="filterProgress('孤本')">孤本/已蒸发</button>
-            </div>
-            <div id="progress-list" class="cards-stack" style="margin-top: 15px;"></div>
-        </section>
-
-        <section id="view-backup" class="view-panel">
-            <div class="view-title">数据管理 / 迁移</div>
-            <div class="backup-box glass">
-                <p class="status-text">> LOCAL_STORAGE: ACTIVE</p>
-                <p class="info-text">所有数据均独立存在当前浏览器中。换设备或清理缓存前，请务必执行备份。</p>
-                
-                <div class="backup-buttons">
-                    <button class="action-btn-pill primary" onclick="exportDataVault()">
-                        <i class="ri-download-cloud-line"></i> 导出全量备份 (.json)
-                    </button>
-                    <label class="action-btn-pill">
-                        <i class="ri-upload-cloud-line"></i> 导入备份文件
-                        <input type="file" id="import-file-input" accept=".json" onchange="importDataVault()" style="display:none;">
-                    </label>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <button class="floating-add-btn" onclick="openArchiveModal()">
-        <i class="ri-add-line"></i>
-    </button>
-
-    <nav class="bottom-tabbar glass">
-        <button class="tab-item active" onclick="switchView('home', this)">
-            <i class="ri-home-5-line"></i><span>主页</span>
-        </button>
-        <button class="tab-item" onclick="switchView('search', this)">
-            <i class="ri-search-eye-line"></i><span>搜索</span>
-        </button>
-        <button class="tab-item" onclick="switchView('fandoms', this)">
-            <i class="ri-folder-shield-2-line"></i><span>圈子</span>
-        </button>
-        <button class="tab-item" onclick="switchView('progress', this)">
-            <i class="ri-compass-3-line"></i><span>进度</span>
-        </button>
-        <button class="tab-item" onclick="switchView('backup', this)">
-            <i class="ri-database-2-line"></i><span>备份</span>
-        </button>
-    </nav>
-
-    <div class="modal-overlay" id="archive-modal">
-        <div class="modal-window glass">
-            <div class="modal-header">
-                <h2>作品封装入档</h2>
-                <button class="modal-close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="field-box">
-                    <label>作品原址 URL</label>
-                    <input type="text" id="form-url" placeholder="粘贴网址" oninput="autoDetectPlatform()">
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>作品标题</label>
-                        <input type="text" id="form-title" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>识别平台</label>
-                        <input type="text" id="form-platform" placeholder="">
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>创作者 (太太)</label>
-                        <input type="text" id="form-author" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>体裁</label>
-                        <select id="form-type">
-                            <option value="文">文</option>
-                            <option value="画">画</option>
-                            <option value="视频">视频</option>
-                            <option value="其他">其他</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>所属圈子</label>
-                        <input type="text" id="form-fandom" placeholder="">
-                    </div>
-                    <div class="field-box">
-                        <label>CP / 配对角色</label>
-                        <input type="text" id="form-cp" placeholder="">
-                    </div>
-                </div>
-                <div class="field-grid">
-                    <div class="field-box">
-                        <label>生存/阅读状态</label>
-                        <select id="form-status">
-                            <option value="完结">已完结</option>
-                            <option value="连载">连载中</option>
-                            <option value="弃坑">原作者弃坑</option>
-                            <option value="孤本">孤本(已删/销号)</option>
-                        </select>
-                    </div>
-                    <div class="field-box">
-                        <label>体量 (选填)</label>
-                        <input type="text" id="form-size" placeholder="如: 5w字 / 4P">
-                    </div>
-                </div>
-                <div class="field-box">
-                    <label>自定义标签 (用空格或逗号隔开)</label>
-                    <input type="text" id="form-tags" placeholder="萌点，若为雷点请加“雷:”前缀">
-                </div>
-                <div class="field-box">
-                    <label>碎碎念 / 核心看点 / 摘要长评</label>
-                    <textarea id="form-comment" rows="5" placeholder="在此记录你的阅读碎碎念、剧情高能点或防丢备份摘要..."></textarea>
-                </div>
-                <input type="hidden" id="form-edit-id">
-                <button class="submit-btn" onclick="submitEncapsulation()">封 存 入 档</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="app.js"></script>
+    // 启动
+    loadData();
+    if(localStorage.getItem("darkMode") === "true") document.body.classList.add("dark");
+    render();
+    initParticleGrid();
+</script>
 </body>
 </html>
