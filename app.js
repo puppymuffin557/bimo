@@ -1,70 +1,165 @@
-// --- 核心状态空间 ---
-let localVault = JSON.parse(localStorage.getItem('fandom_vault_v2')) || [];
+// --- 数据本地化存储空间 ---
+let bimoVault = JSON.parse(localStorage.getItem('bimo_vault_data')) || [];
+let currentProgressFilter = '连载';
 
-// --- 初始化入口 ---
+// --- 初始化触发器 ---
 document.addEventListener("DOMContentLoaded", () => {
-    renderDashboard();
-    initCanvasAnimation();
+    refreshAllViews();
+    initMotionBg();
 });
 
-// --- Tab 导航切换 ---
-function switchTab(tabId) {
-    document.querySelectorAll('.mod-section').forEach(sec => sec.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-    
-    document.getElementById(`mod-${tabId}`).classList.add('active');
-    
-    // 找到对应的导航按钮并高亮
-    const matchedBtn = Array.from(document.querySelectorAll('.nav-menu .nav-btn'))
-                            .find(btn => btn.getAttribute('onclick').includes(tabId));
-    if(matchedBtn) matchedBtn.classList.add('active');
-
-    if(tabId === 'dashboard') renderDashboard();
-    if(tabId === 'repository') renderRepository();
+// --- 全局核心刷新控制 ---
+function refreshAllViews() {
+    renderHomeView();
+    renderFandomsView();
+    renderProgressView();
+    updateDashboardStats();
 }
 
-// --- 自动填写平台 ---
-function handleUrlAutoFill() {
-    const url = document.getElementById('in-url').value.toLowerCase();
-    const platformField = document.getElementById('in-platform');
-    if (url.includes('archiveofourown.org') || url.includes('ao3')) platformField.value = 'AO3';
-    else if (url.includes('lofter.com')) platformField.value = 'LOFTER';
-    else if (url.includes('twitter.com') || url.includes('x.com')) platformField.value = 'X';
-    else if (url.includes('weibo.com')) platformField.value = '微博';
-    else if (url.includes('pixiv.net')) platformField.value = 'Pixiv';
+function updateDashboardStats() {
+    document.getElementById('stat-total').innerText = bimoVault.length;
+    document.getElementById('stat-fandoms').innerText = [...new Set(bimoVault.map(v => v.fandom))].length;
+    document.getElementById('stat-lost').innerText = bimoVault.filter(v => v.status === '孤本').length;
 }
 
-// --- 弹窗控组 ---
-function openArchiveModal(id = null) {
-    const modal = document.getElementById('archive-modal');
-    modal.classList.add('active');
+// --- 底部 Tab 视图切换器 ---
+function switchView(viewId, clickedBtn) {
+    document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
     
-    if(id) {
-        const item = localVault.find(v => v.id === id);
-        document.getElementById('in-id').value = item.id;
-        document.getElementById('in-url').value = item.url;
-        document.getElementById('in-title').value = item.title;
-        document.getElementById('in-platform').value = item.platform;
-        document.getElementById('in-author').value = item.author;
-        document.getElementById('in-type').value = item.type || '文';
-        document.getElementById('in-fandom').value = item.fandom;
-        document.getElementById('in-cp').value = item.cp;
-        document.getElementById('in-status').value = item.status;
-        document.getElementById('in-size').value = item.size || '';
-        document.getElementById('in-tags').value = item.tags.join(', ');
-        document.getElementById('in-comment').value = item.comment;
+    document.getElementById(`view-${viewId}`).classList.add('active');
+    if (clickedBtn) clickedBtn.classList.add('active');
+
+    // 切到对应视图时触发定向刷新
+    if (viewId === 'home') renderHomeView();
+    if (viewId === 'fandoms') renderFandomsView();
+    if (viewId === 'progress') renderProgressView();
+}
+
+// --- 网址输入自动识别平台 ---
+function autoDetectPlatform() {
+    const url = document.getElementById('form-url').value.toLowerCase();
+    const platformInput = document.getElementById('form-platform');
+    if (url.includes('archiveofourown.org') || url.includes('ao3')) platformInput.value = 'AO3';
+    else if (url.includes('lofter.com')) platformInput.value = 'LOFTER';
+    else if (url.includes('twitter.com') || url.includes('x.com')) platformInput.value = 'X';
+    else if (url.includes('weibo.com')) platformInput.value = '微博';
+    else if (url.includes('pixiv.net')) platformInput.value = 'Pixiv';
+}
+
+// --- 顶部全局实时搜索处理 ---
+function handleGlobalSearch() {
+    const query = document.getElementById('global-search').value.trim().toLowerCase();
+    if(!query) {
+        switchView('home', document.querySelector('.tab-item:nth-child(1)'));
+        return;
+    }
+    
+    // 静默切到搜索选项卡
+    switchView('search', document.querySelector('.tab-item:nth-child(2)'));
+    
+    const matched = bimoVault.filter(item => {
+        return item.title.toLowerCase().includes(query) ||
+               item.author.toLowerCase().includes(query) ||
+               item.fandom.toLowerCase().includes(query) ||
+               item.cp.toLowerCase().includes(query) ||
+               item.tags.some(t => t.toLowerCase().includes(query));
+    });
+
+    const container = document.getElementById('search-results-list');
+    container.innerHTML = matched.length ? '' : '<p style="color:var(--text-muted);text-align:center;margin-top:20px;">没有搜到相关的同人藏品线索</p>';
+    matched.forEach(item => container.appendChild(createBimoCardElement(item)));
+}
+
+// --- 快速触发 TAG 搜索跳转 ---
+function jumpToTagSearch(tagValue, event) {
+    if(event) event.stopPropagation();
+    document.getElementById('global-search').value = tagValue;
+    handleGlobalSearch();
+}
+
+// --- 动态生成标准的 bimo 拟玻璃化大卡片 ---
+function createBimoCardElement(item) {
+    const card = document.createElement('div');
+    card.className = 'bimo-card glass';
+    
+    const tagsHtml = item.tags.map(t => {
+        const isRed = t.startsWith('雷:') || t.startsWith('避雷:');
+        return `<span class="clickable-tag ${isRed ? 'is-trigger' : ''}" onclick="jumpToTagSearch('${t}', event)">${t}</span>`;
+    }).join('');
+
+    // 判断评语内容是否过长需要折叠
+    const isLongComment = item.comment && item.comment.length > 120;
+
+    card.innerHTML = `
+        <div class="card-main-info">
+            <div class="card-title-text">[${item.fandom}] ${item.title} ${item.size ? `<span style="font-size:0.8rem;font-weight:normal;color:var(--text-muted);">(${item.size})</span>`:''}</div>
+            <span class="card-badge">${item.platform}</span>
+        </div>
+        <div class="card-author-line">太太: ${item.author} · 配对: <strong style="color:var(--text-primary);">${item.cp}</strong></div>
+        
+        ${item.comment ? `
+            <div class="card-excerpt-zone ${isLongComment ? 'collapsed' : ''}" id="excerpt-${item.id}">${item.comment}</div>
+            ${isLongComment ? `<button class="expand-toggle-btn" onclick="toggleExcerptExpand(${item.id}, this)"><i class="ri-arrow-down-s-line"></i> 展开长评摘要</button>` : ''}
+        ` : ''}
+
+        <div class="card-tags-line">${tagsHtml}</div>
+        
+        <div class="card-footer-meta">
+            <div class="footer-left-indicators">
+                <span class="dot-indicator dot-${item.status}">${item.status}</span>
+                <span>类型: ${item.type || '文'}</span>
+            </div>
+            <div class="card-ops">
+                ${item.url ? `<a href="${item.url}" target="_blank" class="card-url-link" onclick="event.stopPropagation()"><i class="ri-link-m"></i> 原址</a>` : ''}
+                <button class="op-btn" onclick="openArchiveModal(${item.id})"><i class="ri-edit-line"></i></button>
+                <button class="op-btn" onclick="obliterateArchive(${item.id})"><i class="ri-delete-bin-6-line"></i></button>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
+// 长评折叠控制
+function toggleExcerptExpand(id, btn) {
+    const excerpt = document.getElementById(`excerpt-${id}`);
+    if(excerpt.classList.contains('collapsed')) {
+        excerpt.classList.remove('collapsed');
+        btn.innerHTML = `<i class="ri-arrow-up-s-line"></i> 收起长评`;
     } else {
-        // 清空表单
-        document.getElementById('in-id').value = '';
-        document.getElementById('in-url').value = '';
-        document.getElementById('in-title').value = '';
-        document.getElementById('in-platform').value = '';
-        document.getElementById('in-author').value = '';
-        document.getElementById('in-fandom').value = '';
-        document.getElementById('in-cp').value = '';
-        document.getElementById('in-size').value = '';
-        document.getElementById('in-tags').value = '';
-        document.getElementById('in-comment').value = '';
+        excerpt.classList.add('collapsed');
+        btn.innerHTML = `<i class="ri-arrow-down-s-line"></i> 展开长评摘要`;
+    }
+}
+
+// --- 弹窗控制组 ---
+function openArchiveModal(id = null) {
+    document.getElementById('archive-modal').classList.add('active');
+    if (id) {
+        const item = bimoVault.find(v => v.id === id);
+        document.getElementById('form-edit-id').value = item.id;
+        document.getElementById('form-url').value = item.url;
+        document.getElementById('form-title').value = item.title;
+        document.getElementById('form-platform').value = item.platform;
+        document.getElementById('form-author').value = item.author;
+        document.getElementById('form-type').value = item.type || '文';
+        document.getElementById('form-fandom').value = item.fandom;
+        document.getElementById('form-cp').value = item.cp;
+        document.getElementById('form-status').value = item.status;
+        document.getElementById('form-size').value = item.size || '';
+        document.getElementById('form-tags').value = item.tags.join(' ');
+        document.getElementById('form-comment').value = item.comment;
+    } else {
+        document.getElementById('form-edit-id').value = '';
+        document.getElementById('form-url').value = '';
+        document.getElementById('form-title').value = '';
+        document.getElementById('form-platform').value = '';
+        document.getElementById('form-author').value = '';
+        document.getElementById('form-fandom').value = '';
+        document.getElementById('form-cp').value = '';
+        document.getElementById('form-size').value = '';
+        document.getElementById('form-tags').value = '';
+        document.getElementById('form-comment').value = '';
     }
 }
 
@@ -72,307 +167,225 @@ function closeArchiveModal() {
     document.getElementById('archive-modal').classList.remove('active');
 }
 
-// --- 封装执行 (保存数据) ---
-function executeEncapsulation() {
-    const id = document.getElementById('in-id').value;
-    const fandom = document.getElementById('in-fandom').value.trim() || '自由散落流砂';
-    const cp = document.getElementById('in-cp').value.trim() || '无CP/全员向';
+// --- 封装存入数据 ---
+function submitEncapsulation() {
+    const editId = document.getElementById('form-edit-id').value;
+    const fandom = document.getElementById('form-fandom').value.trim() || '自由散布流砂';
+    const cp = document.getElementById('form-cp').value.trim() || '无CP';
     
-    // 解析标签，提取避雷标签
-    const rawTags = document.getElementById('in-tags').value.split(/[,，\s]+/).map(t => t.trim()).filter(t => t);
+    // 处理干净标签组
+    const rawTags = document.getElementById('form-tags').value.split(/[,，\s]+/).map(t => t.trim()).filter(t => t);
 
-    const artifact = {
-        id: id ? parseInt(id) : Date.now(),
-        url: document.getElementById('in-url').value.trim(),
-        title: document.getElementById('in-title').value.trim() || '未命名无定型产物',
-        platform: document.getElementById('in-platform').value.trim() || '未知维度',
-        author: document.getElementById('in-author').value.trim() || '隐名太太',
-        type: document.getElementById('in-type').value,
+    const targetData = {
+        id: editId ? parseInt(editId) : Date.now(),
+        url: document.getElementById('form-url').value.trim(),
+        title: document.getElementById('form-title').value.trim() || '未命名的时空截面',
+        platform: document.getElementById('form-platform').value.trim() || '未知空间',
+        author: document.getElementById('form-author').value.trim() || '佚名太太',
+        type: document.getElementById('form-type').value,
         fandom: fandom,
         cp: cp,
-        status: document.getElementById('in-status').value,
-        size: document.getElementById('in-size').value.trim(),
+        status: document.getElementById('form-status').value,
+        size: document.getElementById('form-size').value.trim(),
         tags: rawTags,
-        comment: document.getElementById('in-comment').value,
-        timestamp: new Date().toLocaleDateString()
+        comment: document.getElementById('form-comment').value
     };
 
-    if (id) {
-        const idx = localVault.findIndex(v => v.id === parseInt(id));
-        localVault[idx] = artifact;
+    if (editId) {
+        const index = bimoVault.findIndex(v => v.id === parseInt(editId));
+        bimoVault[index] = targetData;
     } else {
-        localVault.unshift(artifact);
+        bimoVault.unshift(targetData);
     }
 
-    localStorage.setItem('fandom_vault_v2', JSON.stringify(localVault));
+    localStorage.setItem('bimo_vault_data', JSON.stringify(bimoVault));
     closeArchiveModal();
-    
-    // 刷新当前视窗
-    if(document.getElementById('mod-dashboard').classList.contains('active')) renderDashboard();
-    if(document.getElementById('mod-repository').classList.contains('active')) renderRepository();
+    refreshAllViews();
 }
 
-// --- 销毁存档 ---
-function destroyArchive(id, event) {
-    if(event) event.stopPropagation(); // 阻止触发阅览室模式
-    if (confirm("确定要永久融毁这条私人藏品线索吗？")) {
-        localVault = localVault.filter(v => v.id !== id);
-        localStorage.setItem('fandom_vault_v2', JSON.stringify(localVault));
-        renderRepository();
+// --- 彻底融毁销毁记录 ---
+function obliterateArchive(id) {
+    if (confirm("确定要彻底销毁这篇好不容易抢救回来的同人存档线索吗？")) {
+        bimoVault = bimoVault.filter(v => v.id !== id);
+        localStorage.setItem('bimo_vault_data', JSON.stringify(bimoVault));
+        refreshAllViews();
     }
 }
 
-// --- 沉浸式阅览室系统 (Zen Mode) ---
-function launchZenMode(id) {
-    const item = localVault.find(v => v.id === id);
-    if(!item) return;
-
-    document.getElementById('zen-title').innerText = item.title;
-    document.getElementById('zen-author').innerText = item.author;
-    document.getElementById('zen-fandom').innerText = item.fandom;
-    document.getElementById('zen-cp').innerText = item.cp;
-    document.getElementById('zen-status').className = `status-indicator status-${item.status}`;
-    document.getElementById('zen-status').innerText = item.status;
-    document.getElementById('zen-meta-platform').innerText = `${item.platform} // ${item.type || '文'}`;
-    
-    // 渲染阅览室标签
-    const tagContainer = document.getElementById('zen-tags');
-    tagContainer.innerHTML = '';
-    item.tags.forEach(t => {
-        const span = document.createElement('span');
-        span.className = `c-tag ${t.startsWith('雷:') ? 'is-red' : ''}`;
-        span.innerText = t;
-        tagContainer.appendChild(span);
-    });
-
-    // 渲染核心长评/记录内容
-    document.getElementById('zen-comment').innerText = item.comment || "（该入档作品暂无记录短评，静默留存中。）";
-    
-    const urlAnchor = document.getElementById('zen-original-url');
-    if(item.url) {
-        urlAnchor.href = item.url;
-        urlAnchor.style.display = 'inline-block';
-    } else {
-        urlAnchor.style.display = 'none';
-    }
-
-    document.getElementById('zen-viewer').classList.add('active');
-}
-
-function closeZenMode() {
-    document.getElementById('zen-viewer').classList.remove('active');
-}
-
-// --- 视图渲染：仪表盘 ---
-function renderDashboard() {
-    document.getElementById('stat-total').innerText = localVault.length;
-    document.getElementById('stat-fandoms').innerText = [...new Set(localVault.map(v => v.fandom))].length;
-    document.getElementById('stat-saved').innerText = localVault.filter(v => v.status === '孤本').length;
-
-    const recentList = document.getElementById('recent-list');
-    recentList.innerHTML = '';
-    
-    // 仅提取最近5条展示
-    localVault.slice(0, 5).forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'work-strip';
-        div.onclick = () => launchZenMode(item.id);
-        div.innerHTML = `
-            <div class="strip-top">
-                <span class="strip-title">[${item.fandom}] ${item.title}</span>
-                <span class="platform-pill">${item.platform}</span>
-            </div>
-            <div class="strip-meta">
-                <span>CP: ${item.cp}</span>
-                <span>太太: ${item.author}</span>
-                <span class="status-indicator status-${item.status}">${item.status}</span>
-            </div>
-        `;
-        recentList.appendChild(div);
+// --- 渲染模块：主页面板 ---
+function renderHomeView() {
+    const list = document.getElementById('recent-list');
+    list.innerHTML = bimoVault.length ? '' : '<p style="color:var(--text-muted);text-align:center;padding:40px 0;">空空如也，点击右下角按钮开始封存第一篇好粮。</p>';
+    bimoVault.slice(0, 10).forEach(item => {
+        list.appendChild(createBimoCardElement(item));
     });
 }
 
-// --- 视图渲染：树形多圈藏品库 ---
-function renderRepository() {
-    const container = document.getElementById('repo-tree');
-    const keyword = document.getElementById('search-input').value.toLowerCase();
+// --- 渲染模块：树形分圈面板 ---
+function renderFandomsView() {
+    const container = document.getElementById('fandoms-tree-container');
     container.innerHTML = '';
 
-    const filtered = localVault.filter(v => {
-        return v.title.toLowerCase().includes(keyword) ||
-               v.author.toLowerCase().includes(keyword) ||
-               v.fandom.toLowerCase().includes(keyword) ||
-               v.cp.toLowerCase().includes(keyword) ||
-               v.tags.some(t => t.toLowerCase().includes(keyword));
-    });
-
-    // 多维度聚合成 圈子 -> CP
+    // 重新结构化聚类 圈子 -> CP
     const tree = {};
-    filtered.forEach(item => {
+    bimoVault.forEach(item => {
         if (!tree[item.fandom]) tree[item.fandom] = {};
         if (!tree[item.fandom][item.cp]) tree[item.fandom][item.cp] = [];
         tree[item.fandom][item.cp].push(item);
     });
 
     for (const fandom in tree) {
-        const fandomBlock = document.createElement('div');
-        fandomBlock.className = 'fandom-block';
+        const groupNode = document.createElement('div');
+        groupNode.className = 'fandom-group-node glass';
         
-        let cpCount = Object.keys(tree[fandom]).length;
-        
-        fandomBlock.innerHTML = `
-            <div class="fandom-title-bar">
-                <h4><i class="ri-hashtag"></i> ${fandom}</h4>
-                <span style="font-size:0.75rem; color:var(--text-muted);">${cpCount} 个关系链分区</span>
+        groupNode.innerHTML = `
+            <div class="fandom-group-header" onclick="toggleFandomAccordion(this)">
+                <span><i class="ri-arrow-right-s-line"></i> ${fandom}</span>
+                <span style="font-size:0.85rem; color:var(--text-muted); font-weight:normal;">${Object.keys(tree[fandom]).length} 个分区</span>
             </div>
-            <div class="cp-wrapper"></div>
+            <div class="fandom-group-content"></div>
         `;
-
-        const cpWrapper = fandomBlock.querySelector('.cp-wrapper');
+        
+        const contentArea = groupNode.querySelector('.fandom-group-content');
 
         for (const cp in tree[fandom]) {
-            const cpGroup = document.createElement('div');
-            cpGroup.innerHTML = `
-                <div class="cp-tag-header"><i class="ri-git-merge-line"></i> ${cp}</div>
-                <div class="cards-list"></div>
-            `;
-            const cardsList = cpGroup.querySelector('.cards-list');
+            const cpTitle = document.createElement('div');
+            cpTitle.className = 'cp-division-title';
+            cpTitle.innerHTML = `<i class="ri-git-merge-line"></i> ${cp}`;
+            contentArea.appendChild(cpTitle);
 
             tree[fandom][cp].forEach(item => {
-                const strip = document.createElement('div');
-                strip.className = 'work-strip';
-                // 点击卡片主体进入沉浸式阅览室
-                strip.onclick = () => launchZenMode(item.id);
-
-                const tagsHtml = item.tags.map(t => `
-                    <span class="c-tag ${t.startsWith('雷:') ? 'is-red' : ''}">${t}</span>
-                `).join('');
-
-                strip.innerHTML = `
-                    <div class="strip-top">
-                        <span class="strip-title">${item.title} ${item.size ? `<span style="font-size:0.75rem; font-weight:normal; color:var(--text-muted);">(${item.size})</span>`:''}</span>
-                        <span class="platform-pill">${item.platform}</span>
-                    </div>
-                    <div class="strip-meta">
-                        <span>BY. ${item.author}</span>
-                        <span>类型: ${item.type || '文'}</span>
-                        <span class="status-indicator status-${item.status}">${item.status}</span>
-                        <span style="font-size:0.75rem; color:var(--text-muted); margin-left:auto;">${item.timestamp} 入库</span>
-                    </div>
-                    ${tagsHtml ? `<div class="strip-tags">${tagsHtml}</div>` : ''}
-                    <div class="strip-actions">
-                        <button class="action-btn" onclick="openArchiveModal(${item.id}); event.stopPropagation();"><i class="ri-edit-line"></i> 修改</button>
-                        <button class="action-btn" onclick="destroyArchive(${item.id}, event)"><i class="ri-delete-bin-line"></i> 融毁</button>
-                    </div>
-                `;
-                cardsList.appendChild(strip);
+                contentArea.appendChild(createBimoCardElement(item));
             });
-            cpWrapper.appendChild(cpGroup);
         }
-        container.appendChild(fandomBlock);
+        container.appendChild(groupNode);
     }
 }
 
-// --- 备份主控 ---
-function exportJSON() {
-    const blob = new Blob([JSON.stringify(localVault, null, 2)], {type : 'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `VAULT_EXPORT_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
+function toggleFandomAccordion(headerEl) {
+    headerEl.classList.toggle('open');
+    const content = headerEl.nextElementSibling;
+    content.style.display = content.style.display === 'block' ? 'none' : 'block';
 }
 
-function importJSON() {
-    const file = document.getElementById('import-file').files[0];
-    if(!file) return;
+// --- 渲染模块：连载/追更进度控制 ---
+function filterProgress(statusType) {
+    currentProgressFilter = statusType;
+    document.querySelectorAll('.p-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.innerText.includes(statusType));
+    });
+    renderProgressView();
+}
+
+function renderProgressView() {
+    const container = document.getElementById('progress-list');
+    container.innerHTML = '';
+    const filtered = bimoVault.filter(v => v.status === currentProgressFilter);
+    
+    if(!filtered.length) {
+        container.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:30px 0;">当前分类下无对应作品状态</p>`;
+        return;
+    }
+    filtered.forEach(item => container.appendChild(createBimoCardElement(item)));
+}
+
+// --- 数据管理：导入与导出系统 ---
+function exportDataVault() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(bimoVault, null, 2));
+    const dlAnchor = document.createElement('a');
+    dlAnchor.setAttribute("href", dataStr);
+    dlAnchor.setAttribute("download", `bimo_vault_backup_${new Date().toISOString().slice(0,10)}.json`);
+    document.body.appendChild(dlAnchor);
+    dlAnchor.click();
+    dlAnchor.remove();
+}
+
+function importDataVault() {
+    const fileInput = document.getElementById('import-file-input');
+    if (!fileInput.files.length) return;
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
-            const data = JSON.parse(e.target.result);
-            if(Array.isArray(data)) {
-                localVault = data;
-                localStorage.setItem('fandom_vault_v2', JSON.stringify(localVault));
-                alert('// 核心存储同步完毕。全量历史数据已安全载入。');
-                renderDashboard();
+            const parsed = JSON.parse(e.target.result);
+            if (Array.isArray(parsed)) {
+                bimoVault = parsed;
+                localStorage.setItem('bimo_vault_data', JSON.stringify(bimoVault));
+                alert('// 成功载入数据。全局存档线索已恢复。');
+                refreshAllViews();
+                switchView('home', document.querySelector('.tab-item:nth-child(1)'));
             }
         } catch(err) {
-            alert('// ERROR: 文件流解析失败，请检查是否为本站导出的标准存档。');
+            alert('// ERROR: 无法解析此文件。');
         }
     };
-    reader.readAsText(file);
+    reader.readAsText(fileInput.files[0]);
 }
 
-// --- UI 主题切换 ---
+// --- 深色 / 浅色模式极简无缝切换 ---
 function toggleTheme() {
     const body = document.body;
     const icon = document.getElementById('theme-icon');
-    const label = document.querySelector('.theme-toggle span');
-    
-    if(body.getAttribute('data-theme') === 'dark') {
+    if (body.getAttribute('data-theme') === 'dark') {
         body.setAttribute('data-theme', 'light');
         icon.className = 'ri-sun-line';
-        label.innerText = '浅色模式';
     } else {
         body.setAttribute('data-theme', 'dark');
-        icon.className = 'ri-moon-clear-line';
-        label.innerText = '深色模式';
+        icon.className = 'ri-moon-line';
     }
 }
 
-// --- Motion Graphic 粒子连线系统 ---
-let canvas, ctx, points = [];
-function initCanvasAnimation() {
-    canvas = document.getElementById('bg-canvas');
+// --- 动态极简几何粒子连线 (Motion Graphic 风格) ---
+let canvas, ctx, nodes = [];
+function initMotionBg() {
+    canvas = document.getElementById('mg-canvas');
     ctx = canvas.getContext('2d');
-    resize();
-    window.addEventListener('resize', resize);
+    resizeCanvasSize();
+    window.addEventListener('resize', resizeCanvasSize);
 
-    // 纯粹、稀疏的几维几何点
-    const count = Math.min(Math.floor(canvas.width / 25), 45);
-    for(let i=0; i<count; i++) {
-        points.push({
+    const density = Math.min(Math.floor(canvas.width / 22), 40);
+    for(let i = 0; i < density; i++) {
+        nodes.push({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
-            vx: (Math.random() - 0.5) * 0.3,
-            vy: (Math.random() - 0.5) * 0.3
+            vx: (Math.random() - 0.5) * 0.35,
+            vy: (Math.random() - 0.5) * 0.35
         });
     }
-    animate();
+    runAnimationLoop();
 }
 
-function resize() {
+function resizeCanvasSize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 }
 
-function animate() {
-    ctx.clearRect(0,0, canvas.width, canvas.height);
+function runAnimationLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     const isDark = document.body.getAttribute('data-theme') === 'dark';
-    
-    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)';
-    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.03)';
-    
-    points.forEach(p => {
-        p.x += p.vx; p.y += p.vy;
-        if(p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if(p.y < 0 || p.y > canvas.height) p.vy *= -1;
-        
+
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.12)';
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+
+    nodes.forEach(n => {
+        n.x += n.vx; n.y += n.vy;
+        if(n.x < 0 || n.x > canvas.width) n.vx *= -1;
+        if(n.y < 0 || n.y > canvas.height) n.vy *= -1;
+
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.2, 0, Math.PI*2);
+        ctx.arc(n.x, n.y, 1.5, 0, Math.PI * 2);
         ctx.fill();
     });
 
-    for(let i=0; i<points.length; i++) {
-        for(let j=i+1; j<points.length; j++) {
-            const d = Math.hypot(points[i].x - points[j].x, points[i].y - points[j].y);
-            if(d < 150) {
+    for(let i = 0; i < nodes.length; i++) {
+        for(let j = i + 1; j < nodes.length; j++) {
+            const distance = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
+            if(distance < 140) {
                 ctx.beginPath();
-                ctx.moveTo(points[i].x, points[i].y);
-                ctx.lineTo(points[j].x, points[j].y);
+                ctx.moveTo(nodes[i].x, nodes[i].y);
+                ctx.lineTo(nodes[j].x, nodes[j].y);
                 ctx.stroke();
             }
         }
     }
-    requestAnimationFrame(animate);
+    requestAnimationFrame(runAnimationLoop);
 }
