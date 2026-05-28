@@ -3,202 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARCHIVE.LOG // 私人同人极客存档</title>
+    <title>bimo // 私人同人存档</title>
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body data-theme="dark">
 
-    <div class="bg-grid-overlay"></div>
-    <canvas id="bg-canvas"></canvas>
+    <div class="bg-grid"></div>
+    <canvas id="mg-canvas"></canvas>
 
-    <div class="app-shell">
-        <aside class="sidebar">
-            <div class="brand">
-                <span class="logo-dot"></span>
-                <h2>ARCHIVE.LOG</h2>
-            </div>
-            <nav class="nav-menu">
-                <button class="nav-btn active" onclick="switchTab('dashboard')">
-                    <i class="ri-dashboard-3-line"></i> 仪表盘
-                </button>
-                <button class="nav-btn" onclick="switchTab('repository')">
-                    <i class="ri-folder-zip-line"></i> 藏品库
-                </button>
-                <button class="nav-btn" onclick="switchTab('backup')">
-                    <i class="ri-terminal-box-line"></i> 终极备份
-                </button>
-            </nav>
-            <div class="sidebar-footer">
-                <button class="action-trigger theme-toggle" onclick="toggleTheme()">
-                    <i class="ri-moon-clear-line" id="theme-icon"></i> <span>深色模式</span>
-                </button>
-            </div>
-        </aside>
+    <header class="top-bar glass">
+        <div class="brand-zone">
+            <span class="logo-dot"></span>
+            <h1 class="app-name">bimo</h1>
+        </div>
+        
+        <div class="top-search-box">
+            <i class="ri-search-line"></i>
+            <input type="text" id="global-search" placeholder="输入关键词、作者、CP、TAG..." oninput="handleGlobalSearch()">
+        </div>
 
-        <main class="main-content">
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+            <i class="ri-moon-line" id="theme-icon"></i>
+        </button>
+    </header>
+
+    <main class="app-viewport">
+        
+        <section id="view-home" class="view-panel active">
+            <div class="stats-container">
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-total">0</span>
+                    <span class="lbl">已封存</span>
+                </div>
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-fandoms">0</span>
+                    <span class="lbl">多圈历程</span>
+                </div>
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-lost">0</span>
+                    <span class="lbl">全网孤本</span>
+                </div>
+            </div>
             
-            <section id="mod-dashboard" class="mod-section active">
-                <div class="section-header">
-                    <h3>DASHBOARD // 数据概览</h3>
-                </div>
-                <div class="matrix-grid">
-                    <div class="matrix-card">
-                        <div class="card-glow"></div>
-                        <span class="matrix-label">已封存藏品</span>
-                        <span class="matrix-value" id="stat-total">0</span>
-                    </div>
-                    <div class="matrix-card">
-                        <div class="card-glow"></div>
-                        <span class="matrix-label">观测圈子数</span>
-                        <span class="matrix-value" id="stat-fandoms">0</span>
-                    </div>
-                    <div class="matrix-card">
-                        <div class="card-glow"></div>
-                        <span class="matrix-label">抢救性孤本</span>
-                        <span class="matrix-value" id="stat-saved">0</span>
-                    </div>
-                </div>
+            <div class="view-title">最近入库 & 重温</div>
+            <div id="recent-list" class="cards-stack"></div>
+        </section>
 
-                <div class="recent-panel">
-                    <h4>RECENTLY // 最近重温与入库</h4>
-                    <div id="recent-list" class="recent-list"></div>
-                </div>
-            </section>
+        <section id="view-search" class="view-panel">
+            <div class="view-title">全局搜索结果</div>
+            <div id="search-results-list" class="cards-stack"></div>
+        </section>
 
-            <section id="mod-repository" class="mod-section">
-                <div class="section-header">
-                    <h3>REPOSITORY // 圈子索引</h3>
-                    <div class="search-wrapper">
-                        <i class="ri-search-eye-line"></i>
-                        <input type="text" id="search-input" placeholder="跨圈搜索标题/作者/CP/萌雷点TAG..." oninput="renderRepository()">
-                    </div>
-                </div>
-                <div id="repo-tree" class="repo-tree"></div>
-            </section>
+        <section id="view-fandoms" class="view-panel">
+            <div class="view-title">圈子 / 配对索引</div>
+            <div id="fandoms-tree-container"></div>
+        </section>
 
-            <section id="mod-backup" class="mod-section">
-                <div class="section-header">
-                    <h3>DATA MANAGEMENT // 数据主控</h3>
-                </div>
-                <div class="terminal-box">
-                    <p class="terminal-line">> STATUS: LOCALSTORAGE_ACTIVE</p>
-                    <p class="terminal-line">> INFO: 本站为全隔离私人工作台，不经过任何服务器，数据绝对安全。</p>
-                    <div class="terminal-actions">
-                        <button class="cyber-btn" onclick="exportJSON()">
-                            <i class="ri-download-2-line"></i> 导出全量加密存档 (.json)
-                        </button>
-                        <label class="cyber-btn file-label">
-                            <i class="ri-upload-2-line"></i> 导入历史全局存档
-                            <input type="file" id="import-file" accept=".json" onchange="importJSON()" style="display:none;">
-                        </label>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
+        <section id="view-progress" class="view-panel">
+            <div class="view-title">追更状态主控</div>
+            <div class="progress-tabs">
+                <button class="p-tab active" onclick="filterProgress('连载')">连载中</button>
+                <button class="p-tab" onclick="filterProgress('完结')">已完结</button>
+                <button class="p-tab" onclick="filterProgress('弃坑')">原作者弃坑</button>
+                <button class="p-tab" onclick="filterProgress('孤本')">孤本/已蒸发</button>
+            </div>
+            <div id="progress-list" class="cards-stack" style="margin-top: 15px;"></div>
+        </section>
 
-    <button class="floating-trigger" onclick="openArchiveModal()">
+        <section id="view-backup" class="view-panel">
+            <div class="view-title">数据管理 / 迁移</div>
+            <div class="backup-box glass">
+                <p class="status-text">> LOCAL_STORAGE: ACTIVE</p>
+                <p class="info-text">所有数据均独立存在当前浏览器中。换设备或清理缓存前，请务必执行备份。</p>
+                
+                <div class="backup-buttons">
+                    <button class="action-btn-pill primary" onclick="exportDataVault()">
+                        <i class="ri-download-cloud-line"></i> 导出全量备份 (.json)
+                    </button>
+                    <label class="action-btn-pill">
+                        <i class="ri-upload-cloud-line"></i> 导入备份文件
+                        <input type="file" id="import-file-input" accept=".json" onchange="importDataVault()" style="display:none;">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <button class="floating-add-btn" onclick="openArchiveModal()">
         <i class="ri-add-line"></i>
     </button>
 
-    <div class="modal" id="archive-modal">
-        <div class="modal-blur" onclick="closeArchiveModal()"></div>
-        <div class="modal-window">
+    <nav class="bottom-tabbar glass">
+        <button class="tab-item active" onclick="switchView('home', this)">
+            <i class="ri-home-5-line"></i><span>主页</span>
+        </button>
+        <button class="tab-item" onclick="switchView('search', this)">
+            <i class="ri-search-eye-line"></i><span>搜索</span>
+        </button>
+        <button class="tab-item" onclick="switchView('fandoms', this)">
+            <i class="ri-folder-shield-2-line"></i><span>圈子</span>
+        </button>
+        <button class="tab-item" onclick="switchView('progress', this)">
+            <i class="ri-compass-3-line"></i><span>进度</span>
+        </button>
+        <button class="tab-item" onclick="switchView('backup', this)">
+            <i class="ri-database-2-line"></i><span>备份</span>
+        </button>
+    </nav>
+
+    <div class="modal-overlay" id="archive-modal">
+        <div class="modal-window glass">
             <div class="modal-header">
-                <h4><i class="ri-git-repository-private-line"></i> ENCAPSULATION // 作品入档封装</h4>
-                <button class="close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
+                <h2>作品封装入档</h2>
+                <button class="modal-close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
             </div>
             <div class="modal-body">
-                <div class="input-row">
-                    <label>原发网址 (URL)</label>
-                    <input type="text" id="in-url" placeholder="粘贴 AO3, LOFTER, X, 微博 等链接" oninput="handleUrlAutoFill()">
+                <div class="field-box">
+                    <label>作品原址 URL</label>
+                    <input type="text" id="form-url" placeholder="粘贴网址" oninput="autoDetectPlatform()">
                 </div>
-                <div class="input-group-2">
-                    <div class="input-row">
+                <div class="field-grid">
+                    <div class="field-box">
                         <label>作品标题</label>
-                        <input type="text" id="in-title" placeholder="如：那件疯狂的小事">
+                        <input type="text" id="form-title" placeholder="">
                     </div>
-                    <div class="input-row">
-                        <label>源平台</label>
-                        <input type="text" id="in-platform" placeholder="自动识别">
+                    <div class="field-box">
+                        <label>识别平台</label>
+                        <input type="text" id="form-platform" placeholder="">
                     </div>
                 </div>
-                <div class="input-group-2">
-                    <div class="input-row">
-                        <label>创作太太</label>
-                        <input type="text" id="in-author" placeholder="作者名/ID">
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>创作者 (太太)</label>
+                        <input type="text" id="form-author" placeholder="">
                     </div>
-                    <div class="input-row">
-                        <label>体裁类型</label>
-                        <select id="in-type">
-                            <option value="文">文字 (Text)</option>
-                            <option value="画">画作/图集 (Illustration)</option>
-                            <option value="视频">视频剪辑 (Video)</option>
-                            <option value="其他">其他周边/谷美</option>
+                    <div class="field-box">
+                        <label>体裁</label>
+                        <select id="form-type">
+                            <option value="文">文</option>
+                            <option value="画">画</option>
+                            <option value="视频">视频</option>
+                            <option value="其他">其他</option>
                         </select>
                     </div>
                 </div>
-                <div class="input-group-2">
-                    <div class="input-row">
-                        <label>所属圈子 (Fandom)</label>
-                        <input type="text" id="in-fandom" placeholder="如：诡秘之主">
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>所属圈子</label>
+                        <input type="text" id="form-fandom" placeholder="">
                     </div>
-                    <div class="input-row">
+                    <div class="field-box">
                         <label>CP / 配对角色</label>
-                        <input type="text" id="in-cp" placeholder="如：克伦 (无CP填无)">
+                        <input type="text" id="form-cp" placeholder="">
                     </div>
                 </div>
-                <div class="input-group-2">
-                    <div class="input-row">
-                        <label>生存状态</label>
-                        <select id="in-status">
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>生存/阅读状态</label>
+                        <select id="form-status">
                             <option value="完结">已完结</option>
                             <option value="连载">连载中</option>
-                            <option value="弃坑">原作者已弃坑</option>
-                            <option value="孤本">【考古级】原帖已删/原作者销号</option>
+                            <option value="弃坑">原作者弃坑</option>
+                            <option value="孤本">孤本(已删/销号)</option>
                         </select>
                     </div>
-                    <div class="input-row">
-                        <label>容量体量 (选填)</label>
-                        <input type="text" id="in-size" placeholder="例: 15w字 / 3P / 5分钟">
+                    <div class="field-box">
+                        <label>体量 (选填)</label>
+                        <input type="text" id="form-size" placeholder="如: 5w字 / 4P">
                     </div>
                 </div>
-                <div class="input-row">
-                    <label>同人标签 (用逗号或空格分隔)</label>
-                    <input type="text" id="in-tags" placeholder="萌点如: HE, 强强；雷点请加“雷:”前缀如: 雷:生子">
+                <div class="field-box">
+                    <label>自定义标签 (用空格或逗号隔开)</label>
+                    <input type="text" id="form-tags" placeholder="萌点，若为雷点请加“雷:”前缀">
                 </div>
-                <div class="input-row">
-                    <label>私人留存短评 / 进度提示 / 名场面备忘</label>
-                    <textarea id="in-comment" rows="4" placeholder="深夜读完此篇的碎碎念……或者：已经用TXT备份了全文，防止走丢。"></textarea>
+                <div class="field-box">
+                    <label>碎碎念 / 核心看点 / 摘要长评</label>
+                    <textarea id="form-comment" rows="5" placeholder="在此记录你的阅读碎碎念、剧情高能点或防丢备份摘要..."></textarea>
                 </div>
-                <input type="hidden" id="in-id">
-                <button class="submit-cyber-btn" onclick="executeEncapsulation()">
-                    <span>CORE_ENCAPSULATION // 执行封装</span>
-                </button>
+                <input type="hidden" id="form-edit-id">
+                <button class="submit-btn" onclick="submitEncapsulation()">封 存 入 档</button>
             </div>
         </div>
     </div>
 
-    <div class="zen-viewer" id="zen-viewer">
-        <div class="zen-header">
-            <button class="zen-close" onclick="closeZenMode()"><i class="ri-arrow-left-line"></i> 返回库</button>
-            <span class="zen-meta-top" id="zen-meta-platform">AO3</span>
+    <script src="app.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>bimo // 私人同人存档</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+    <div class="bg-grid"></div>
+    <canvas id="mg-canvas"></canvas>
+
+    <header class="top-bar glass">
+        <div class="brand-zone">
+            <span class="logo-dot"></span>
+            <h1 class="app-name">bimo</h1>
         </div>
-        <div class="zen-container">
-            <h1 class="zen-title" id="zen-title">作品标题</h1>
-            <div class="zen-meta-line">
-                <span>BY: <strong id="zen-author">太太名</strong></span>
-                <span>FANDOM: <span id="zen-fandom">圈子</span></span>
-                <span>CP: <span id="zen-cp">配对</span></span>
-                <span>STATUS: <span id="zen-status">状态</span></span>
-            </div>
-            <div class="zen-tags" id="zen-tags"></div>
-            <div class="zen-divider"></div>
-            <div class="zen-content" id="zen-comment">
+        
+        <div class="top-search-box">
+            <i class="ri-search-line"></i>
+            <input type="text" id="global-search" placeholder="输入关键词、作者、CP、TAG..." oninput="handleGlobalSearch()">
+        </div>
+
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+            <i class="ri-moon-line" id="theme-icon"></i>
+        </button>
+    </header>
+
+    <main class="app-viewport">
+        
+        <section id="view-home" class="view-panel active">
+            <div class="stats-container">
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-total">0</span>
+                    <span class="lbl">已封存</span>
                 </div>
-            <div class="zen-footer-link">
-                <a id="zen-original-url" href="#" target="_blank"><i class="ri-link-m"></i> 访问原平台浏览作品</a>
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-fandoms">0</span>
+                    <span class="lbl">多圈历程</span>
+                </div>
+                <div class="stat-bubble glass">
+                    <span class="num" id="stat-lost">0</span>
+                    <span class="lbl">全网孤本</span>
+                </div>
+            </div>
+            
+            <div class="view-title">最近入库 & 重温</div>
+            <div id="recent-list" class="cards-stack"></div>
+        </section>
+
+        <section id="view-search" class="view-panel">
+            <div class="view-title">全局搜索结果</div>
+            <div id="search-results-list" class="cards-stack"></div>
+        </section>
+
+        <section id="view-fandoms" class="view-panel">
+            <div class="view-title">圈子 / 配对索引</div>
+            <div id="fandoms-tree-container"></div>
+        </section>
+
+        <section id="view-progress" class="view-panel">
+            <div class="view-title">追更状态主控</div>
+            <div class="progress-tabs">
+                <button class="p-tab active" onclick="filterProgress('连载')">连载中</button>
+                <button class="p-tab" onclick="filterProgress('完结')">已完结</button>
+                <button class="p-tab" onclick="filterProgress('弃坑')">原作者弃坑</button>
+                <button class="p-tab" onclick="filterProgress('孤本')">孤本/已蒸发</button>
+            </div>
+            <div id="progress-list" class="cards-stack" style="margin-top: 15px;"></div>
+        </section>
+
+        <section id="view-backup" class="view-panel">
+            <div class="view-title">数据管理 / 迁移</div>
+            <div class="backup-box glass">
+                <p class="status-text">> LOCAL_STORAGE: ACTIVE</p>
+                <p class="info-text">所有数据均独立存在当前浏览器中。换设备或清理缓存前，请务必执行备份。</p>
+                
+                <div class="backup-buttons">
+                    <button class="action-btn-pill primary" onclick="exportDataVault()">
+                        <i class="ri-download-cloud-line"></i> 导出全量备份 (.json)
+                    </button>
+                    <label class="action-btn-pill">
+                        <i class="ri-upload-cloud-line"></i> 导入备份文件
+                        <input type="file" id="import-file-input" accept=".json" onchange="importDataVault()" style="display:none;">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <button class="floating-add-btn" onclick="openArchiveModal()">
+        <i class="ri-add-line"></i>
+    </button>
+
+    <nav class="bottom-tabbar glass">
+        <button class="tab-item active" onclick="switchView('home', this)">
+            <i class="ri-home-5-line"></i><span>主页</span>
+        </button>
+        <button class="tab-item" onclick="switchView('search', this)">
+            <i class="ri-search-eye-line"></i><span>搜索</span>
+        </button>
+        <button class="tab-item" onclick="switchView('fandoms', this)">
+            <i class="ri-folder-shield-2-line"></i><span>圈子</span>
+        </button>
+        <button class="tab-item" onclick="switchView('progress', this)">
+            <i class="ri-compass-3-line"></i><span>进度</span>
+        </button>
+        <button class="tab-item" onclick="switchView('backup', this)">
+            <i class="ri-database-2-line"></i><span>备份</span>
+        </button>
+    </nav>
+
+    <div class="modal-overlay" id="archive-modal">
+        <div class="modal-window glass">
+            <div class="modal-header">
+                <h2>作品封装入档</h2>
+                <button class="modal-close-btn" onclick="closeArchiveModal()"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="field-box">
+                    <label>作品原址 URL</label>
+                    <input type="text" id="form-url" placeholder="粘贴网址" oninput="autoDetectPlatform()">
+                </div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>作品标题</label>
+                        <input type="text" id="form-title" placeholder="">
+                    </div>
+                    <div class="field-box">
+                        <label>识别平台</label>
+                        <input type="text" id="form-platform" placeholder="">
+                    </div>
+                </div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>创作者 (太太)</label>
+                        <input type="text" id="form-author" placeholder="">
+                    </div>
+                    <div class="field-box">
+                        <label>体裁</label>
+                        <select id="form-type">
+                            <option value="文">文</option>
+                            <option value="画">画</option>
+                            <option value="视频">视频</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>所属圈子</label>
+                        <input type="text" id="form-fandom" placeholder="">
+                    </div>
+                    <div class="field-box">
+                        <label>CP / 配对角色</label>
+                        <input type="text" id="form-cp" placeholder="">
+                    </div>
+                </div>
+                <div class="field-grid">
+                    <div class="field-box">
+                        <label>生存/阅读状态</label>
+                        <select id="form-status">
+                            <option value="完结">已完结</option>
+                            <option value="连载">连载中</option>
+                            <option value="弃坑">原作者弃坑</option>
+                            <option value="孤本">孤本(已删/销号)</option>
+                        </select>
+                    </div>
+                    <div class="field-box">
+                        <label>体量 (选填)</label>
+                        <input type="text" id="form-size" placeholder="如: 5w字 / 4P">
+                    </div>
+                </div>
+                <div class="field-box">
+                    <label>自定义标签 (用空格或逗号隔开)</label>
+                    <input type="text" id="form-tags" placeholder="萌点，若为雷点请加“雷:”前缀">
+                </div>
+                <div class="field-box">
+                    <label>碎碎念 / 核心看点 / 摘要长评</label>
+                    <textarea id="form-comment" rows="5" placeholder="在此记录你的阅读碎碎念、剧情高能点或防丢备份摘要..."></textarea>
+                </div>
+                <input type="hidden" id="form-edit-id">
+                <button class="submit-btn" onclick="submitEncapsulation()">封 存 入 档</button>
             </div>
         </div>
     </div>
